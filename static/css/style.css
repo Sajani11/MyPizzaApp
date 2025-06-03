@@ -1,0 +1,119 @@
+.navbar-glow {
+  background: #f05c5c;
+  box-shadow: 0 0 20px rgba(211, 47, 47, 0.6);
+}
+
+.navbar-brand,
+.nav-link {
+  color: white !important;
+}
+
+.nav-link:hover {
+  color: #ffeb3b !important;
+  text-shadow: 0 0 5px #fff;
+}
+
+.btn-glow {
+  background-color: #f44336;
+  color: white;
+  border-radius: 10px;
+  box-shadow: 0 0 10px #f44336;
+  transition: 0.3s ease;
+}
+
+.btn-glow:hover {
+  background-color: #e53935;
+  box-shadow: 0 0 20px #f44336;
+}
+
+.form-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: 30px;
+}
+
+.form-card {
+  background-color: #c7acac;
+  padding: 30px;
+  border-radius: 15px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  border: 2px solid #a07d7a;
+
+  box-shadow: 0 0 10px #c48f8c, 0 0 20px #f44336, 0 0 40px #f44336,
+    0 0 60px rgba(161, 138, 136, 0.3);
+  animation: pulseGlow 3s infinite;
+}
+
+.form-card input {
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  border: none;
+  border-radius: 8px;
+  background-color: #fcf4f4;
+  color: white;
+  box-shadow: 0 0 10px #363131;
+  outline: none;
+}
+
+.form-card input::placeholder {
+  color: #141313;
+}
+
+.form-card button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 15px;
+  background-color: #f0df4a;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 0 10px #d45f5a;
+  transition: 0.3s ease;
+}
+
+.form-card button:hover {
+  background-color: #e9e064;
+  box-shadow: 0 0 20px #f44336;
+}
+
+@keyframes pulseGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 5px #f44336, 0 0 10px #f44336,
+      0 0 15px rgba(244, 67, 54, 0.4), 0 0 20px rgba(244, 67, 54, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 8px #e53935, 0 0 15px #e53935,
+      0 0 20px rgba(229, 57, 53, 0.5), 0 0 25px rgba(229, 57, 53, 0.4);
+  }
+}
+
+.footer-section {
+  background-color: #f05c5c;
+  box-shadow: 0 0 10px rgba(211, 47, 47, 0.4);
+  position: relative;
+}
+
+.footer-section h5 {
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: #fff;
+}
+
+.footer-section p,
+.footer-section a {
+  color: #f8f9fa;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.footer-section a:hover {
+  color: #ffc107;
+  text-shadow: 0 0 3px #fff;
+}

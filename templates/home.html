@@ -1,0 +1,38 @@
+{% extends "layout.html" %} {% block title %}Home - Pizza Center{% endblock %}
+{% block content %}
+<h1 class="text-center text-danger mb-4">🍕 Welcome to Pizza Center</h1>
+
+{% if session.get('role') == 'admin' %}
+<!-- Add Pizza button visible only for admins -->
+<div class="mb-4 text-center">
+  <a href="{{ url_for('add_pizza') }}" class="btn btn-success">Add Pizza</a>
+</div>
+{% endif %}
+
+<div class="row">
+  {% for pizza in pizzas %}
+  <div class="col-md-4">
+    <div class="card mb-4 shadow-sm">
+      <img src="{{ pizza[4] }}" class="card-img-top" alt="{{ pizza[1] }}" />
+      <div class="card-body">
+        <h5 class="card-title">{{ pizza[1] }}</h5>
+        <p class="card-text">{{ pizza[2] }}</p>
+        <p class="text-success">Rs. {{ pizza[3] }}</p>
+
+        {% if session.get('user_id') %}
+        <a
+          href="{{ url_for('order_pizza', pizza_id=pizza[0]) }}"
+          class="btn btn-primary w-100"
+          >Order Now</a
+        >
+        {% else %}
+        <a href="{{ url_for('choose_auth') }}" class="btn btn-warning w-100"
+          >Order Now</a
+        >
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

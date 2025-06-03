@@ -1,0 +1,65 @@
+{% extends "layout.html" %} {% block content %}
+<div class="container">
+  <h2 class="mt-4">Add New Pizza</h2>
+
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %} {% if
+  messages %}
+  <div class="alert alert-info">
+    {% for category, message in messages %}
+    <p>{{ message }}</p>
+    {% endfor %}
+  </div>
+  {% endif %} {% endwith %}
+
+  <!-- Add Pizza Form -->
+  <form action="{{ url_for('add_pizza') }}" method="POST">
+    <div class="form-group">
+      <label for="pizza_name">Pizza Name</label>
+      <input
+        type="text"
+        class="form-control"
+        id="pizza_name"
+        name="pizza_name"
+        required
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="description">Description</label>
+      <textarea
+        class="form-control"
+        id="description"
+        name="description"
+        rows="3"
+        required
+      ></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="price">Price</label>
+      <input
+        type="number"
+        class="form-control"
+        id="price"
+        name="price"
+        step="0.01"
+        required
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="image_url">Image URL</label>
+      <input
+        type="url"
+        class="form-control"
+        id="image_url"
+        name="image_url"
+        required
+      />
+    </div>
+
+    <button type="submit" class="btn btn-primary mt-3">Add Pizza</button>
+  </form>
+</div>
+{% endblock %}

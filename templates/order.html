@@ -1,0 +1,47 @@
+{% extends 'layout.html' %} {% block content %}
+<div class="container mt-5">
+  <h2 class="text-center mb-4">🚚 Order Your Pizza</h2>
+  <div class="card shadow p-4">
+    <h4>{{ pizza.name }}</h4>
+    <p>{{ pizza.description }}</p>
+    <form method="POST">
+      <div class="form-group mb-3">
+        <label>Choose Category:</label>
+        <select name="category" class="form-control" required>
+          <option value="Veg">Veg</option>
+          <option value="Non-Veg">Non-Veg</option>
+        </select>
+      </div>
+      <div class="form-group mb-3">
+        <label>Choose Size:</label>
+        <select name="size" class="form-control" required>
+          <option value="Small">Small</option>
+          <option value="Medium">Medium</option>
+          <option value="Large">Large</option>
+        </select>
+      </div>
+      <div class="form-group mb-3">
+        <label>Quantity:</label>
+        <input
+          type="number"
+          name="quantity"
+          class="form-control"
+          min="1"
+          value="1"
+          required
+        />
+      </div>
+      <div class="form-group mb-3">
+        <label>Delivery Address:</label>
+        <textarea
+          name="address"
+          class="form-control"
+          rows="3"
+          required
+        ></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary w-100">Place Order</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

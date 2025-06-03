@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Pizza Center</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Bootstrap 5 CDN -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Font Awesome for Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+
+    <!-- Custom CSS -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-glow sticky-top">
+      <div class="container">
+        <a class="navbar-brand fw-bold" href="{{ url_for('home') }}">
+          <i class="fas fa-pizza-slice"></i> Pizza Center
+        </a>
+        <button
+          class="navbar-toggler bg-light"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon text-white"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('home') }}"
+                ><i class="fas fa-home"></i> Home</a
+              >
+            </li>
+
+            {% if session.get('user_id') %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('orders') }}"
+                ><i class="fas fa-receipt"></i> My Orders</a
+              >
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('logout') }}"
+                ><i class="fas fa-sign-out-alt"></i> Logout</a
+              >
+            </li>
+            {% if session.get('role') == 'admin' %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('admin_dashboard') }}"
+                ><i class="fas fa-cogs"></i> Admin_Dashboard</a
+              >
+            </li>
+            s {% endif %} {% else %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('login') }}"
+                ><i class="fas fa-sign-in-alt"></i> Login</a
+              >
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('register') }}"
+                ><i class="fas fa-user-plus"></i> Register</a
+              >
+            </li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container mt-3">
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %} {% for category, message in messages %}
+      <div
+        class="alert alert-{{ category }} alert-dismissible fade show"
+        role="alert"
+      >
+        {{ message }}
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+          aria-label="Close"
+        ></button>
+      </div>
+      {% endfor %} {% endif %} {% endwith %}
+    </div>
+
+    <div class="container mt-4">{% block content %}{% endblock %}</div>
+
+    <footer class="footer-section text-white mt-5">
+      <div class="container py-4">
+        <div class="row">
+          <div class="col-md-3">
+            <h5>About Pizza Center</h5>
+            <p>
+              Your favorite destination for delicious, freshly-baked pizzas made
+              with love and premium ingredients!
+            </p>
+          </div>
+
+          <div class="col-md-3">
+            <h5>Contact Us</h5>
+            <p><i class="fas fa-phone-alt"></i> +977-9800000000</p>
+            <p><i class="fas fa-envelope"></i> contact@pizzacenter.com</p>
+            <p>
+              <i class="fas fa-map-marker-alt"></i> Lakeside, Pokhara, Nepal
+            </p>
+          </div>
+
+          <div class="col-md-3">
+            <h5>Opening Hours</h5>
+            <p>Mon-Sat: 10:00 AM – 10:00 PM</p>
+            <p>Sunday: 12:00 PM – 8:00 PM</p>
+          </div>
+
+          <div class="col-md-3">
+            <h5>Follow Us</h5>
+            <a
+              href="https://facebook.com"
+              class="text-white me-3"
+              target="_blank"
+              ><i class="fab fa-facebook fa-lg"></i
+            ></a>
+            <a
+              href="https://instagram.com"
+              class="text-white me-3"
+              target="_blank"
+              ><i class="fab fa-instagram fa-lg"></i
+            ></a>
+            <a
+              href="https://maps.google.com?q=pokhara+pizza+center"
+              class="text-white"
+              target="_blank"
+              ><i class="fas fa-map-marked-alt fa-lg"></i
+            ></a>
+          </div>
+        </div>
+        <hr class="bg-light" />
+      </div>
+    </footer>
+  </body>
+</html>

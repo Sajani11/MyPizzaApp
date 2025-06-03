@@ -1,0 +1,20 @@
+{% extends "layout.html" %} {% block title %} Authenticate - Pizza Center {%
+endblock %} {% block content %}
+<div class="container text-center mt-5">
+  <h2 class="mb-4 text-danger">You need an account to order!</h2>
+  <div class="d-flex justify-content-center gap-3">
+    <a
+      href="{{ url_for('register') }}"
+      class="btn btn-lg"
+      style="background-color: #ffeb3b; color: black; border: none"
+      >New User? Register</a
+    >
+    <a
+      href="{{ url_for('login') }}"
+      class="btn btn-lg"
+      style="background-color: #ffeb3b; color: black; border: none"
+      >Already Registered? Login</a
+    >
+  </div>
+</div>
+{% endblock %}
