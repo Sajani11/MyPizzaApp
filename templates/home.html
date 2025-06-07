@@ -1,38 +1,111 @@
 {% extends "layout.html" %} {% block title %}Home - Pizza Center{% endblock %}
 {% block content %}
-<h1 class="text-center text-danger mb-4">🍕 Welcome to Pizza Center</h1>
 
-{% if session.get('role') == 'admin' %}
-<!-- Add Pizza button visible only for admins -->
-<div class="mb-4 text-center">
-  <a href="{{ url_for('add_pizza') }}" class="btn btn-success">Add Pizza</a>
+<h1 class="text-center text-danger mb-4 gsap-heading">
+  🍕 Welcome to Pizza Center
+</h1>
+
+<div class="container mt-4">
+  <div class="input-group mb-3">
+    <input
+      type="text"
+      class="form-control"
+      placeholder="Search pizzas..."
+      id="searchInput"
+      onkeyup="filterPizzas()"
+    />
+    <span class="input-group-text bg-white">
+      <i class="fas fa-search text-muted"></i>
+    </span>
+  </div>
 </div>
-{% endif %}
 
-<div class="row">
-  {% for pizza in pizzas %}
-  <div class="col-md-4">
-    <div class="card mb-4 shadow-sm">
-      <img src="{{ pizza[4] }}" class="card-img-top" alt="{{ pizza[1] }}" />
-      <div class="card-body">
-        <h5 class="card-title">{{ pizza[1] }}</h5>
-        <p class="card-text">{{ pizza[2] }}</p>
-        <p class="text-success">Rs. {{ pizza[3] }}</p>
+<!-- 🍕 Pizza Grid -->
+<div class="container">
+  <div class="row gx-4 gy-4" id="pizzaList">
+    {% for pizza in pizzas %}
+    <div
+      class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4 pizza-item"
+      data-name="{{ pizza[1] | lower }}"
+    >
+      <div class="card text-center pizza-card">
+        <img
+          src="{{ pizza[4] }}"
+          class="rounded-circle img-fluid pizza-img mx-auto mt-3"
+          alt="{{ pizza[1] }}"
+        />
+        <div class="card-body">
+          <h5 class="card-title">{{ pizza[1] }}</h5>
+          <p class="card-text">{{ pizza[2] }}</p>
+          <p class="text-success">Rs. {{ pizza[3] }}</p>
 
-        {% if session.get('user_id') %}
-        <a
-          href="{{ url_for('order_pizza', pizza_id=pizza[0]) }}"
-          class="btn btn-primary w-100"
-          >Order Now</a
-        >
-        {% else %}
-        <a href="{{ url_for('choose_auth') }}" class="btn btn-warning w-100"
-          >Order Now</a
-        >
-        {% endif %}
+          {% if session.get('user_id') %}
+          <a
+            href="{{ url_for('order_pizza', pizza_id=pizza[0]) }}"
+            class="btn btn-primary w-100"
+            >Order Now</a
+          >
+          {% else %}
+          <a href="{{ url_for('choose_auth') }}" class="btn btn-warning w-100"
+            >Order Now</a
+          >
+          {% endif %}
+        </div>
       </div>
     </div>
+    {% endfor %}
   </div>
-  {% endfor %}
 </div>
+
+<!-- No Match Message -->
+<div
+  id="noResultMsg"
+  class="text-center text-danger fw-bold mt-4"
+  style="display: none"
+>
+  😔 No pizzas matched your search.
+</div>
+
+<!-- ✨ GSAP & Custom Script -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+<script>
+  // GSAP Animations
+  gsap.from(".gsap-heading", { opacity: 0, y: -50, duration: 1 });
+  gsap.from(".gsap-add", { opacity: 0, y: 50, duration: 1, delay: 0.3 });
+  gsap.from(".pizza-item", {
+    opacity: 0,
+    scale: 0.8,
+    duration: 0.6,
+    stagger: 0.1,
+    delay: 0.6,
+  });
+
+  // Function to filter pizzas based on the search input
+  function filterPizzas() {
+    const input = document.getElementById("searchInput").value.toLowerCase();
+    const items = document.querySelectorAll(".pizza-item");
+    let found = false;
+
+    items.forEach((item) => {
+      const name = item.getAttribute("data-name");
+      if (name.includes(input)) {
+        item.style.display = "block";
+        gsap.fromTo(
+          item,
+          { opacity: 0, scale: 0.8 },
+          { opacity: 1, scale: 1, duration: 0.4 }
+        );
+        found = true;
+      } else {
+        item.style.display = "none";
+      }
+    });
+
+    document.getElementById("noResultMsg").style.display = found
+      ? "none"
+      : "block";
+  }
+</script>
+
 {% endblock %}

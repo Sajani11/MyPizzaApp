@@ -1,65 +1,70 @@
 {% extends "layout.html" %} {% block content %}
-<div class="container">
-  <h2 class="mt-4">Add New Pizza</h2>
-
-  <!-- Flash Messages -->
-  {% with messages = get_flashed_messages(with_categories=true) %} {% if
-  messages %}
-  <div class="alert alert-info">
-    {% for category, message in messages %}
-    <p>{{ message }}</p>
-    {% endfor %}
-  </div>
-  {% endif %} {% endwith %}
-
+<div class="card p-4 shadow">
+  <h2 class="mb-3">Add a New Pizza</h2>
   <!-- Add Pizza Form -->
-  <form action="{{ url_for('add_pizza') }}" method="POST">
-    <div class="form-group">
-      <label for="pizza_name">Pizza Name</label>
+  <form
+    action="{{ url_for('add_pizza') }}"
+    method="POST"
+    class="shadow p-4 rounded bg-light"
+  >
+    <div class="mb-3">
+      <label for="pizza_name" class="form-label">Pizza Name</label>
       <input
         type="text"
         class="form-control"
         id="pizza_name"
         name="pizza_name"
+        placeholder="e.g., Margherita"
         required
       />
     </div>
 
-    <div class="form-group">
-      <label for="description">Description</label>
+    <div class="mb-3">
+      <label for="description" class="form-label">Description</label>
       <textarea
         class="form-control"
         id="description"
         name="description"
         rows="3"
+        placeholder="Enter a short description"
         required
       ></textarea>
     </div>
 
-    <div class="form-group">
-      <label for="price">Price</label>
+    <div class="mb-3">
+      <label for="price" class="form-label">Price (Rs.)</label>
       <input
         type="number"
         class="form-control"
         id="price"
         name="price"
         step="0.01"
+        placeholder="e.g., 499"
         required
       />
     </div>
 
-    <div class="form-group">
-      <label for="image_url">Image URL</label>
+    <div class="mb-3">
+      <label for="image_url" class="form-label">Image URL</label>
       <input
         type="url"
         class="form-control"
         id="image_url"
         name="image_url"
+        placeholder="Paste a valid image URL"
         required
       />
     </div>
+    <img
+      id="imagePreview"
+      src=""
+      alt="Image Preview"
+      style="display: none; width: 100px; height: auto; margin-top: 10px"
+    />
 
-    <button type="submit" class="btn btn-primary mt-3">Add Pizza</button>
+    <div class="d-grid">
+      <button type="submit" class="btn btn-success">Add Pizza</button>
+    </div>
   </form>
 </div>
 {% endblock %}

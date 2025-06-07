@@ -68,32 +68,39 @@ def add_pizza():
     cursor = None
     try:
         if request.method == 'POST':
-            name = request.form['pizza_name']
-            description = request.form['description']
-            price = float(request.form['price'])
-            image_url = request.form['image_url']
+            name = request.form.get('pizza_name', '').strip()
+            description = request.form.get('description', '').strip()
+            price_raw = request.form.get('price', '').strip()
+            image_url = request.form.get('image_url', '').strip()
 
-            # Ensure the cursor is set up correctly for the query
+            if not all([name, description, price_raw, image_url]):
+                flash('All fields are required.', 'warning')
+                return render_template('add_pizza.html')
+
+            try:
+                price = float(price_raw)
+            except ValueError:
+                flash('Invalid price format.', 'warning')
+                return render_template('add_pizza.html')
+
             cursor = mysql.connection.cursor()
-            
-            # Insert pizza into the database (removed 'category' field)
             cursor.execute(
                 'INSERT INTO pizzas (name, description, price, image_url) VALUES (%s, %s, %s, %s)',
                 (name, description, price, image_url)
             )
-            mysql.connection.commit()  # Commit the changes to the database
-
-            # Flash success message
+            mysql.connection.commit()
             flash('Pizza added successfully!', 'success')
+            return redirect(url_for('add_pizza')) 
 
     except Exception as e:
-        print(f"Error: {e}")
-        flash('Failed to add pizza. Please try again.', 'danger')
+        print(f"Error adding pizza: {e}")
+        flash('Failed to add pizza. Please try again.', 'danger') 
+
     finally:
         if cursor:
             cursor.close()
 
-    return redirect(url_for('home'))  # Redirect to the homepage after adding pizza
+    return render_template('add_pizza.html')
 
 
 @app.route('/logout')
@@ -259,4 +266,5 @@ def update_status(order_id):
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5000)
+

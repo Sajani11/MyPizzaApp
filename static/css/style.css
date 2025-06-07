@@ -1,3 +1,4 @@
+/* Navbar */
 .navbar-glow {
   background: #f05c5c;
   box-shadow: 0 0 20px rgba(211, 47, 47, 0.6);
@@ -13,6 +14,7 @@
   text-shadow: 0 0 5px #fff;
 }
 
+/* Buttons */
 .btn-glow {
   background-color: #f44336;
   color: white;
@@ -26,15 +28,16 @@
   box-shadow: 0 0 20px #f44336;
 }
 
+/* Form Container */
 .form-container {
   min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-
   padding: 30px;
 }
 
+/* Form Card */
 .form-card {
   background-color: #c7acac;
   padding: 30px;
@@ -43,7 +46,6 @@
   max-width: 400px;
   text-align: center;
   border: 2px solid #a07d7a;
-
   box-shadow: 0 0 10px #c48f8c, 0 0 20px #f44336, 0 0 40px #f44336,
     0 0 60px rgba(161, 138, 136, 0.3);
   animation: pulseGlow 3s infinite;
@@ -56,9 +58,10 @@
   border: none;
   border-radius: 8px;
   background-color: #fcf4f4;
-  color: white;
+  color: black;
   box-shadow: 0 0 10px #363131;
   outline: none;
+  transition: 0.3s ease;
 }
 
 .form-card input::placeholder {
@@ -82,6 +85,7 @@
   box-shadow: 0 0 20px #f44336;
 }
 
+/* Animation */
 @keyframes pulseGlow {
   0%,
   100% {
@@ -94,6 +98,25 @@
   }
 }
 
+/* Search Icon */
+.search-icon {
+  background-color: white;
+  border-left: none;
+  color: #888;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.search-icon i {
+  font-size: 16px;
+}
+
+.search-icon:hover {
+  color: #f44336;
+  background-color: #fce4ec;
+}
+
+/* Footer Section */
 .footer-section {
   background-color: #f05c5c;
   box-shadow: 0 0 10px rgba(211, 47, 47, 0.4);
@@ -116,4 +139,40 @@
 .footer-section a:hover {
   color: #ffc107;
   text-shadow: 0 0 3px #fff;
+}
+
+/* Pizza Image & Card */
+.pizza-img {
+  width: 250px;
+  height: 250px;
+  object-fit: cover;
+  border: 2px solid #ffc107;
+  box-shadow: 0 0 20px rgba(255, 193, 7, 0.6);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.pizza-img:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 30px rgba(255, 255, 0, 0.9);
+}
+
+.pizza-card {
+  transition: transform 0.3s, box-shadow 0.3s;
+  max-width: 550px;
+  padding: 5px;
+  width: 100%;
+}
+
+.pizza-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0 20px rgba(255, 193, 7, 0.6);
+}
+
+/* Carousel */
+.carousel-inner {
+  padding: 50px 20px;
+}
+
+.footer-section {
+  text-align: center;
 }
