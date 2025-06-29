@@ -1,0 +1,29 @@
+{% extends 'layout.html' %} {% block content %}
+<div class="container mt-5">
+  <h2 class="text-center mb-4">🛒 Payment for Order #{{ order.pizza_name}}</h2>
+
+  <div class="card shadow p-4">
+    <h4>{{ order.pizza_name }}</h4>
+    <p><strong>Size:</strong> {{ order.size }}</p>
+    <p><strong>Quantity:</strong> {{ order.quantity }}</p>
+    <p><strong>Total Price:</strong> NPR {{ order.total_price }}</p>
+    <p><strong>Delivery Address:</strong> {{ order.address }}</p>
+
+    <form method="POST">
+      <h4>Choose Payment Method:</h4>
+      <div class="form-group mb-3">
+        <label for="payment_method">Select a Payment Option:</label>
+        <select name="payment_method" class="form-control" required>
+          <option value="esewa">eSewa 💚</option>
+          <option value="khalti">Khalti 💜</option>
+          <option value="imepay">IME Pay 🔴</option>
+          <option value="cod">Cash on Delivery 💵</option>
+          <option value="bank_transfer">Bank Transfer 🏦</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100">Pay Now</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
