@@ -41,14 +41,16 @@
 
           {% if session.get('user_id') %}
           <a
-            href="{{ url_for('order_pizza', pizza_id=pizza[0]) }}"
+            href="#"
             class="btn btn-primary w-100"
-            >Order Now</a
+            onclick="showOrderModal('{{ pizza[0] }}')"
           >
+            Order Now
+          </a>
           {% else %}
-          <a href="{{ url_for('choose_auth') }}" class="btn btn-warning w-100"
-            >Order Now</a
-          >
+          <a href="{{ url_for('choose_auth') }}" class="btn btn-warning w-100">
+            Order Now
+          </a>
           {% endif %}
         </div>
       </div>
@@ -64,6 +66,38 @@
   style="display: none"
 >
   😔 No pizzas matched your search.
+</div>
+
+<!-- 🍕 Customization Modal -->
+<div
+  class="modal fade"
+  id="orderChoiceModal"
+  tabindex="-1"
+  aria-labelledby="orderChoiceLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="orderChoiceLabel">Customize Your Pizza?</h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body text-center">
+        <p>Would you like to customize your pizza or order the regular one?</p>
+        <button id="customizeBtn" class="btn btn-outline-primary m-2 w-100">
+          Customize Pizza
+        </button>
+        <button id="regularBtn" class="btn btn-outline-success m-2 w-100">
+          Regular Order
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ✨ GSAP & Custom Script -->
@@ -106,6 +140,30 @@
       ? "none"
       : "block";
   }
+
+  let selectedPizzaId = null;
+
+  function showOrderModal(pizzaId) {
+    selectedPizzaId = pizzaId;
+    const modal = new bootstrap.Modal(
+      document.getElementById("orderChoiceModal")
+    );
+    modal.show();
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    document
+      .getElementById("customizeBtn")
+      .addEventListener("click", function () {
+        window.location.href = `/customize/${selectedPizzaId}`;
+      });
+
+    document
+      .getElementById("regularBtn")
+      .addEventListener("click", function () {
+        window.location.href = `/order/${selectedPizzaId}`;
+      });
+  });
 </script>
 
 {% endblock %}

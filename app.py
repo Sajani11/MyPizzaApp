@@ -204,6 +204,72 @@ def cancel_order(order_id):
 
     return redirect(url_for('orders'))
 
+@app.route('/customize/<int:pizza_id>', methods=['GET', 'POST'])
+def customize_pizza(pizza_id):
+    cursor = mysql.connection.cursor()
+    cursor.execute("SELECT * FROM pizzas WHERE id = %s", (pizza_id,))
+    pizza = cursor.fetchone()
+
+    if not pizza:
+        flash("Pizza not found!", "danger")
+        return redirect(url_for('home'))
+
+    if request.method == 'POST':
+        size = request.form['size']
+        quantity = int(request.form['quantity'])
+        crust = request.form['crust']
+        cheese = request.form['cheese']
+        toppings = request.form.getlist('toppings')
+        extras = request.form.get('extras', '').strip()
+
+        base_price = pizza[3]  # The pizza price from the database
+
+        # Apply size-based price adjustments
+        if size == 'medium':
+            price = base_price + 100
+        elif size == 'large':
+            price = base_price + 200
+        else:
+            price = base_price  # small size
+
+        # Apply extra cheese price adjustment
+        if cheese == 'extra':
+            price += 50
+
+        total_price = price * quantity
+
+        # Store the customized pizza in the orders table or show on the payment page
+        user_id = session['user_id']
+        cursor.execute("""
+            INSERT INTO orders (user_id, pizza_id, size, quantity, crust, cheese, toppings, extras, total_price, status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (user_id, pizza_id, size, quantity, crust, cheese, ', '.join(toppings), extras, total_price, 'pending'))
+        mysql.connection.commit()
+
+        flash("Your customized pizza has been added to the cart!", "success")
+        return redirect(url_for('payment', order_id=mysql.connection.insert_id()))  # Assuming insert_id() gives the latest order ID
+
+    return render_template('customize.html', pizza=pizza)
+
+@app.route('/payment/<int:order_id>', methods=['GET', 'POST'])
+def payment(order_id):
+    cursor = mysql.connection.cursor()
+    cursor.execute("SELECT * FROM orders WHERE id = %s AND user_id = %s", (order_id, session['user_id']))
+    order = cursor.fetchone()
+
+    if not order:
+        flash("Order not found!", "danger")
+        return redirect(url_for('home'))
+
+    if request.method == 'POST':
+        payment_method = request.form['payment_method']
+        cursor.execute("UPDATE orders SET payment_method = %s, status = %s WHERE id = %s", (payment_method, 'paid', order_id))
+        mysql.connection.commit()
+        flash("Payment successful! Your order is being processed.", "success")
+        return redirect(url_for('orders'))
+
+    return render_template('payment.html', order=order)
+
 
 @app.route('/admin/dashboard')
 def admin_dashboard():

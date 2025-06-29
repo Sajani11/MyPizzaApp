@@ -88,6 +88,18 @@
         </div>
       </div>
     </nav>
+    <!-- Back Button -->
+    {% if request.endpoint != 'home' %}
+    <div class="container mt-3 d-flex justify-content-end">
+      <button
+        class="btn btn-secondary"
+        onclick="window.history.back()"
+        aria-label="Go Back"
+      >
+        <i class="fas fa-arrow-left"></i> Back
+      </button>
+    </div>
+    {% endif %}
 
     <div class="container mt-3">
       {% with messages = get_flashed_messages(with_categories=true) %} {% if
