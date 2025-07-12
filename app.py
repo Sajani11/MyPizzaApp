@@ -148,10 +148,11 @@ def order_pizza(pizza_id):
             INSERT INTO orders (user_id, pizza_id, size, quantity, total_price, status)
             VALUES (%s, %s, %s, %s, %s, %s)
         """, (user_id, pizza_id, size, quantity, total_price, 'pending'))
+        order_id = cursor.lastrowid
         mysql.connection.commit()
 
         flash("Your order has been placed successfully!", "success")
-        return redirect(url_for('orders'))
+        return redirect(url_for('payment',order_id= order_id))
 
     return render_template('order.html', pizza=pizza)
 
@@ -244,10 +245,11 @@ def customize_pizza(pizza_id):
             INSERT INTO orders (user_id, pizza_id, size, quantity, crust, cheese, toppings, extras, total_price, status)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (user_id, pizza_id, size, quantity, crust, cheese, ', '.join(toppings), extras, total_price, 'pending'))
+        order_id = cursor.lastrowid 
         mysql.connection.commit()
 
         flash("Your customized pizza has been added to the cart!", "success")
-        return redirect(url_for('payment', order_id=mysql.connection.insert_id()))  # Assuming insert_id() gives the latest order ID
+        return redirect(url_for('payment', order_id=order_id))  # Assuming insert_id() gives the latest order ID
 
     return render_template('customize.html', pizza=pizza)
 
