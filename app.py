@@ -3,11 +3,32 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_mysqldb import MySQL
 from flask_apscheduler import APScheduler
 from datetime import datetime, timedelta
-
+from PIL import Image
 from config import Config ,ConfigScheduler
+
+import os
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+
+UPLOAD_FOLDER = 'static/images'
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+
+def allowed_file(filename):
+    if '.' in filename:
+        ext = filename.rsplit('.', 1)[1].lower()
+        if ext in ALLOWED_EXTENSIONS:
+            try:
+                image = Image.open(filename)
+                image.verify()  # This checks if the file is a valid image
+                return True
+            except Exception:
+                return False
+    return False
 mysql = MySQL(app)
 
 app.config.from_object(ConfigScheduler)
@@ -65,43 +86,38 @@ def login():
 
 @app.route('/add_pizza', methods=['GET', 'POST'])
 def add_pizza():
-    cursor = None
-    try:
-        if request.method == 'POST':
-            name = request.form.get('pizza_name', '').strip()
-            description = request.form.get('description', '').strip()
-            price_raw = request.form.get('price', '').strip()
-            image_url = request.form.get('image_url', '').strip()
+    if request.method == 'POST':
+        name = request.form['pizza_name']
+        description = request.form['description']
+        price = float(request.form['price'])
+        image_source = request.form['image_source']  # 'url' or 'upload'
 
-            if not all([name, description, price_raw, image_url]):
-                flash('All fields are required.', 'warning')
-                return render_template('add_pizza.html')
+        image_url = ''
+        
+        if image_source == 'url':
+            image_url = request.form['image_url']  # Image URL from input
+        elif image_source == 'upload':
+            image_file = request.files.get('image_file')  # Image file from upload
+            if image_file and allowed_file(image_file.filename):
+                filename = secure_filename(image_file.filename)
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                image_file.save(file_path)
+                image_url = '/' + file_path.replace("\\", "/")  # For Windows paths
+            else:
+                flash('Invalid image file. Please upload a valid .jpg or .jpeg file.', 'danger')
+                return redirect(url_for('add_pizza'))
 
-            try:
-                price = float(price_raw)
-            except ValueError:
-                flash('Invalid price format.', 'warning')
-                return render_template('add_pizza.html')
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            'INSERT INTO pizzas (name, description, price, image_url) VALUES (%s, %s, %s, %s)',
+            (name, description, price, image_url)
+        )
+        mysql.connection.commit()
 
-            cursor = mysql.connection.cursor()
-            cursor.execute(
-                'INSERT INTO pizzas (name, description, price, image_url) VALUES (%s, %s, %s, %s)',
-                (name, description, price, image_url)
-            )
-            mysql.connection.commit()
-            flash('Pizza added successfully!', 'success')
-            return redirect(url_for('add_pizza')) 
-
-    except Exception as e:
-        print(f"Error adding pizza: {e}")
-        flash('Failed to add pizza. Please try again.', 'danger') 
-
-    finally:
-        if cursor:
-            cursor.close()
+        flash('Pizza added successfully!', 'success')
+        return redirect(url_for('add_pizza'))
 
     return render_template('add_pizza.html')
-
 
 @app.route('/logout')
 def logout():
@@ -272,25 +288,41 @@ def payment(order_id):
 
     return render_template('payment.html', order=order)
 
-
 @app.route('/admin/dashboard')
 def admin_dashboard():
     if 'user_id' not in session or session.get('role') != 'admin':
         flash("Admin access required.", "danger")
         return redirect(url_for('login'))
 
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)  # Using DictCursor
-    query = '''
-        SELECT o.id, u.username, p.name, o.size, o.quantity, o.total_price, 
-               o.status, o.created_at
-        FROM orders o
-        JOIN users u ON o.user_id = u.id
-        JOIN pizzas p ON o.pizza_id = p.id
-        ORDER BY o.created_at DESC
-    '''
-    cursor.execute(query)
-    orders = cursor.fetchall()  # This will now return a list of dictionaries
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    search_query = request.args.get('q', '').strip()
+    if search_query:
+        like_pattern = f"%{search_query}%"
+        query = '''
+            SELECT o.id, u.username, o.address, p.name, o.size, o.quantity,
+                   o.total_price, o.status, o.created_at
+            FROM orders o
+            JOIN users u ON o.user_id = u.id
+            JOIN pizzas p ON o.pizza_id = p.id
+            WHERE u.username LIKE %s OR o.address LIKE %s OR p.name LIKE %s OR o.id LIKE %s
+            ORDER BY o.created_at DESC
+        '''
+        cursor.execute(query, (like_pattern, like_pattern, like_pattern, like_pattern))
+    else:
+        query = '''
+            SELECT o.id, u.username, o.address, p.name, o.size, o.quantity,
+                   o.total_price, o.status, o.created_at
+            FROM orders o
+            JOIN users u ON o.user_id = u.id
+            JOIN pizzas p ON o.pizza_id = p.id
+            ORDER BY o.created_at DESC
+        '''
+        cursor.execute(query)
+
+    orders = cursor.fetchall()
     return render_template('admin_dashboard.html', orders=orders)
+
 
 def auto_update_order_status():
     with app.app_context():  # to use db inside job

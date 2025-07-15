@@ -2,12 +2,17 @@
 
 {% block content %}
 <h2 class="mb-4">All Orders</h2>
+<form method="GET" action="{{ url_for('admin_dashboard') }}" class="mb-3 d-flex" role="search">
+  <input type="text" name="q" class="form-control me-2" placeholder="Search by user, address, or pizza..." value="{{ request.args.get('q', '') }}">
+  <button class="btn btn-outline-primary" type="submit">Search</button>
+</form>
 
 <table class="table table-bordered table-hover">
   <thead class="table-dark">
     <tr>
       <th>Order ID</th>
       <th>User</th>
+      <th>Location</th>
       <th>Pizza</th>
       <th>Size</th>
       <th>Quantity</th>
@@ -22,7 +27,8 @@
     <tr>
       <td>{{ order.id }}</td>
       <td>{{ order.username }}</td>
-      <td>{{ order.name }}</td>  <!-- Corrected here -->
+      <td>{{ order.address }}</td>
+      <td>{{ order.name }}</td>  
       <td>{{ order.size }}</td>
       <td>{{ order.quantity }}</td>
       <td>Rs {{ order.total_price }}</td>
