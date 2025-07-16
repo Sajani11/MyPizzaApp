@@ -4,6 +4,8 @@ from flask_mysqldb import MySQL
 from flask_apscheduler import APScheduler
 from datetime import datetime, timedelta
 from PIL import Image
+from io import BytesIO
+
 from config import Config ,ConfigScheduler
 
 import os
@@ -17,18 +19,19 @@ UPLOAD_FOLDER = 'static/images'
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-
-def allowed_file(filename):
+def allowed_file(file_storage):
+    filename = file_storage.filename
     if '.' in filename:
         ext = filename.rsplit('.', 1)[1].lower()
         if ext in ALLOWED_EXTENSIONS:
             try:
-                image = Image.open(filename)
-                image.verify()  # This checks if the file is a valid image
+                image = Image.open(file_storage.stream)
+                image.verify()
                 return True
             except Exception:
                 return False
     return False
+
 mysql = MySQL(app)
 
 app.config.from_object(ConfigScheduler)
@@ -97,15 +100,16 @@ def add_pizza():
         if image_source == 'url':
             image_url = request.form['image_url']  # Image URL from input
         elif image_source == 'upload':
-            image_file = request.files.get('image_file')  # Image file from upload
-            if image_file and allowed_file(image_file.filename):
+           image_file = request.files.get('image_file')  
+           if image_file and allowed_file(image_file):
                 filename = secure_filename(image_file.filename)
                 file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 image_file.save(file_path)
-                image_url = '/' + file_path.replace("\\", "/")  # For Windows paths
-            else:
+                image_url = '/' + file_path.replace("\\", "/")
+           else:
                 flash('Invalid image file. Please upload a valid .jpg or .jpeg file.', 'danger')
                 return redirect(url_for('add_pizza'))
+
 
         cursor = mysql.connection.cursor()
         cursor.execute(
