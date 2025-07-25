@@ -1,0 +1,30 @@
+{% extends "layout.html" %} {% block content %}
+<div class="container mt-5">
+  <h2 class="mb-4 text-center">🎁 My Rewards</h2>
+
+  {% if rewards %}
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped table-hover">
+      <thead class="table-dark">
+        <tr>
+          <th>Reward</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for reward in rewards %}
+        <tr>
+          <td>{{ reward.reward }}</td>
+          <td>{{ reward.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="alert alert-info text-center">
+    No rewards yet. Spin the wheel to earn one!
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

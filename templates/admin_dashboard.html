@@ -2,6 +2,7 @@
 
 {% block content %}
 <h2 class="mb-4">All Orders</h2>
+
 <form method="GET" action="{{ url_for('admin_dashboard') }}" class="mb-3 d-flex" role="search">
   <input type="text" name="q" class="form-control me-2" placeholder="Search by user, address, or pizza..." value="{{ request.args.get('q', '') }}">
   <button class="btn btn-outline-primary" type="submit">Search</button>

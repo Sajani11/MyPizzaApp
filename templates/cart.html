@@ -1,0 +1,44 @@
+{% extends 'layout.html' %} {% block content %}
+<div class="container mt-5">
+  <h2 class="text-center mb-4">🛒 Your Cart</h2>
+  {% if cart_items %}
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Pizza</th>
+        <th>Quantity</th>
+        <th>Price</th>
+        <th>Subtotal</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in cart_items %}
+      <tr>
+        <td>{{ item.name }}</td>
+        <td>{{ item.quantity }}</td>
+        <td>Rs. {{ item.price }}</td>
+        <td>Rs. {{ item.subtotal }}</td>
+        <td>
+          <form
+            action="{{ url_for('remove_from_cart', cart_id=item.cart_id) }}"
+            method="POST"
+          >
+            <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="text-end">
+    <h4>Total: Rs. {{ total }}</h4>
+    <form action="{{ url_for('checkout_cart') }}" method="POST">
+      <button type="submit" class="btn btn-success">Place Order</button>
+    </form>
+  </div>
+  {% else %}
+  <p class="text-center">Your cart is empty.</p>
+  {% endif %}
+</div>
+{% endblock %}

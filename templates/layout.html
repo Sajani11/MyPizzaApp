@@ -52,6 +52,26 @@
                 <i class="fas fa-receipt"></i> My Orders
               </a>
             </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('view_cart') }}">
+                <i class="fas fa-shopping-cart"></i> Cart
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('referral') }}">
+                <i class="fas fa-user-friends"></i> Referral
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('view_rewards') }}">
+                <i class="fas fa-gift"></i> My Rewards
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('spin_wheel') }}">
+                <i class="fas fa-dice"></i> Spin
+              </a>
+            </li>
             {% elif session.get('role') == 'admin' %}
             <!-- Admin-specific nav -->
             <li class="nav-item">
@@ -63,6 +83,11 @@
             <li class="nav-item">
               <a class="nav-link" href="{{ url_for('add_pizza') }}">
                 <i class="fas fa-plus-circle"></i> Add Pizza
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('admin_spin_rewards') }}">
+                <i class="fas fa-gift"></i> View Spin Rewards
               </a>
             </li>
             {% endif %}
@@ -88,6 +113,7 @@
         </div>
       </div>
     </nav>
+
     <!-- Back Button -->
     {% if request.endpoint != 'home' %}
     <div class="container mt-3 d-flex justify-content-end">
@@ -125,7 +151,7 @@
       <div class="container py-4">
         <div class="row">
           <div class="col-md-3">
-            <h5>About Pizza Center</h5>
+            <h5>About Us</h5>
             <p>
               Your favorite destination for delicious, freshly-baked pizzas made
               with love and premium ingredients!
@@ -135,7 +161,7 @@
           <div class="col-md-3">
             <h5>Contact Us</h5>
             <p><i class="fas fa-phone-alt"></i> +977-9800000000</p>
-            <p><i class="fas fa-envelope"></i> contact@pizzacenter.com</p>
+            <p><i class="fas fa-envelope"></i> contact@pizzaslice.com</p>
             <p>
               <i class="fas fa-map-marker-alt"></i> Lakeside, Pokhara, Nepal
             </p>

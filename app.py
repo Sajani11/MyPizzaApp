@@ -1,9 +1,10 @@
-from flask import Flask, render_template,session,request,flash,redirect,url_for
+from flask import Flask, render_template,session,request,flash,redirect,url_for , jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_mysqldb import MySQL
 from flask_apscheduler import APScheduler
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from PIL import Image
+import random, string
 from io import BytesIO
 
 from config import Config ,ConfigScheduler
@@ -368,7 +369,171 @@ def update_status(order_id):
     flash("Order status updated successfully!", "success")
     return redirect(url_for('admin_dashboard'))  # Adjust this to where you want to redirect after updating
 
+@app.route('/add-to-cart/<int:pizza_id>', methods=['POST'])
+def add_to_cart(pizza_id):
+    if 'user_id' not in session:
+        flash("Please login first", "danger")
+        return redirect(url_for('login'))
+
+    quantity = int(request.form.get('quantity', 1))
+    user_id = session['user_id']
+
+    cursor = mysql.connection.cursor()
+    cursor.execute("INSERT INTO cart (user_id, pizza_id, quantity) VALUES (%s, %s, %s)",
+                   (user_id, pizza_id, quantity))
+    mysql.connection.commit()
+
+    flash("Pizza added to cart!", "success")
+    return redirect(url_for('home'))
+
+@app.route('/cart')
+def view_cart():
+    if 'user_id' not in session:
+        flash("Login to view your cart", "warning")
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("""
+        SELECT c.id as cart_id, p.id as pizza_id, p.name, p.price, c.quantity, (p.price * c.quantity) as subtotal
+        FROM cart c
+        JOIN pizzas p ON c.pizza_id = p.id
+        WHERE c.user_id = %s
+    """, (user_id,))
+    cart_items = cursor.fetchall()
+
+    total = sum(item['subtotal'] for item in cart_items)
+
+    return render_template('cart.html', cart_items=cart_items, total=total)
+
+@app.route('/remove-from-cart/<int:cart_id>', methods=['POST'])
+def remove_from_cart(cart_id):
+    cursor = mysql.connection.cursor()
+    cursor.execute("DELETE FROM cart WHERE id = %s AND user_id = %s", (cart_id, session['user_id']))
+    mysql.connection.commit()
+    flash("Item removed from cart", "info")
+    return redirect(url_for('view_cart'))
+
+@app.route('/checkout-cart', methods=['POST'])
+def checkout_cart():
+    user_id = session['user_id']
+    cursor = mysql.connection.cursor()
+    cursor.execute("SELECT pizza_id, quantity FROM cart WHERE user_id = %s", (user_id,))
+    items = cursor.fetchall()
+
+    for item in items:
+        cursor.execute("INSERT INTO orders (user_id, pizza_id, size, quantity, total_price, status) "
+                       "SELECT %s, %s, %s, %s, price * %s, %s FROM pizzas WHERE id = %s",
+                       (user_id, item[0], 'small', item[1], item[1], 'pending', item[0]))
+
+    cursor.execute("DELETE FROM cart WHERE user_id = %s", (user_id,))
+    mysql.connection.commit()
+
+    flash("Order placed from cart!", "success")
+    return redirect(url_for('orders'))
+
+
+def generate_referral_code(length=6):
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
+
+@app.route('/referral')
+def referral():
+    if 'user_id' not in session:
+        flash("Login required", "warning")
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    cursor = mysql.connection.cursor()
+    cursor.execute("SELECT referral_code FROM referrals WHERE user_id = %s", (user_id,))
+    result = cursor.fetchone()
+
+    if not result:
+        code = generate_referral_code()
+        cursor.execute("INSERT INTO referrals (user_id, referral_code) VALUES (%s, %s)", (user_id, code))
+        mysql.connection.commit()
+        referral_code = code
+    else:
+        referral_code = result[0]
+
+    return render_template("referral.html", referral_code=referral_code)
+
+@app.route('/spin')
+def spin_wheel():
+    if 'user_id' not in session:
+        flash("Login to spin the wheel!", "danger")
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    today = date.today()
+
+    cursor = mysql.connection.cursor()
+    cursor.execute("""
+        SELECT COUNT(*) FROM spin_rewards
+        WHERE user_id = %s AND DATE(created_at) = %s
+    """, (user_id, today))
+    count = cursor.fetchone()[0]
+
+    if count >= 1:
+        # User has already spun for today
+        return render_template('spin.html', message="You have already spun today! Try again tomorrow.")
+    
+    # If user hasn't spun yet, show the wheel
+    return render_template('spin.html', message=None)
+
+
+@app.route('/get-spin-reward')
+def get_spin_reward():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Login required'}), 403
+
+    user_id = session['user_id']
+    today = date.today()
+
+    cursor = mysql.connection.cursor()
+    cursor.execute("""
+        SELECT COUNT(*) FROM spin_rewards 
+        WHERE user_id = %s AND DATE(created_at) = %s
+    """, (user_id, today))
+    count = cursor.fetchone()[0]
+
+    if count >= 1:
+        return jsonify({'reward': 'Already Spun Today'})
+
+    reward = random.choice(['Free Pizza', '50% Off', 'Extra Cheese', 'No Reward', 'Buy 1 Get 1'])
+    cursor.execute("INSERT INTO spin_rewards (user_id, reward) VALUES (%s, %s)", (user_id, reward))
+    mysql.connection.commit()
+
+    return jsonify({'reward': reward})
+
+@app.route('/my-rewards')
+def view_rewards():
+    if 'user_id' not in session:
+        flash("Login required", "danger")
+        return redirect(url_for('login'))
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT reward, created_at FROM spin_rewards WHERE user_id = %s ORDER BY created_at DESC",
+                   (session['user_id'],))
+    rewards = cursor.fetchall()
+
+    return render_template("rewards.html", rewards=rewards)
+
+@app.route('/admin/spin-rewards')
+def admin_spin_rewards():
+    if 'user_id' not in session or session.get('role') != 'admin':
+        flash("Admin access only.", "danger")
+        return redirect(url_for('login'))
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("""
+        SELECT sr.id, u.username, sr.reward, sr.created_at
+        FROM spin_rewards sr
+        JOIN users u ON sr.user_id = u.id
+        ORDER BY sr.created_at DESC
+    """)
+    rewards = cursor.fetchall()
+
+    return render_template("admin_spin_rewards.html", rewards=rewards)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
-
