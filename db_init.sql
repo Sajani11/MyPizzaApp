@@ -55,12 +55,6 @@ CREATE TABLE IF NOT EXISTS admins (
     password VARCHAR(100)
 );
 
-CREATE TABLE IF NOT EXISTS referrals (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT,
-    referral_code VARCHAR(50),
-    FOREIGN KEY (user_id) REFERENCES users(id)
-);
 
 CREATE TABLE IF NOT EXISTS spin_rewards (
     id INT AUTO_INCREMENT PRIMARY KEY,

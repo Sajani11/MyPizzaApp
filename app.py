@@ -134,60 +134,61 @@ def logout():
 def choose_auth():
     return render_template('choose_auth.html')
 
-@app.route('/order/<int:pizza_id>', methods=['GET', 'POST'])
+@app.route('/order/<int:pizza_id>', methods=['GET','POST'])
 def order_pizza(pizza_id):
     if 'user_id' not in session:
-        flash("Please login first", "danger")
-        return redirect(url_for('choose_auth'))
+        flash('Login first', 'warning')
+        return redirect(url_for('login'))
 
     cursor = mysql.connection.cursor()
-    cursor.execute("SELECT * FROM pizzas WHERE id = %s", (pizza_id,))
+    cursor.execute("SELECT * FROM pizzas WHERE id=%s", (pizza_id,))
     pizza = cursor.fetchone()
-
     if not pizza:
-        flash("Pizza not found!", "danger")
+        flash('Pizza not found', 'danger')
         return redirect(url_for('home'))
 
     if request.method == 'POST':
-        size = request.form['size']
-        quantity = int(request.form['quantity'])
-        user_id = session['user_id']
+        size = request.form.get('size', 'small')
+        crust = request.form.get('crust', 'thin')
+        cheese = request.form.get('cheese', 'normal')
+        toppings = ','.join(request.form.getlist('toppings')) or None
+        extras = request.form.get('extras') or None
+        quantity = int(request.form.get('quantity', 1))
 
-        # Price logic
-        base_price = pizza[3]  # 3rd index corresponds to 'price'
+        # Calculate unit_price
+        unit_price = float(pizza['price'])
         if size == 'medium':
-            price = base_price + 100
+            unit_price += 100
         elif size == 'large':
-            price = base_price + 200
-        else:
-            price = base_price  # small
+            unit_price += 200
+        if cheese == 'extra':
+            unit_price += 50
 
-        total_price = price * quantity
-
-        # Insert into orders table (with size, quantity, and total price)
+        # Insert into cart (with customizations)
         cursor.execute("""
-            INSERT INTO orders (user_id, pizza_id, size, quantity, total_price, status)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, (user_id, pizza_id, size, quantity, total_price, 'pending'))
-        order_id = cursor.lastrowid
+            INSERT INTO cart(user_id, pizza_id, size, crust, cheese, toppings, extras, quantity, unit_price)
+            VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            ON DUPLICATE KEY UPDATE quantity=quantity+VALUES(quantity)
+        """, (session['user_id'], pizza_id, size, crust, cheese, toppings, extras, quantity, unit_price))
+
         mysql.connection.commit()
+        flash('Added to cart', 'success')
+        return redirect(url_for('view_cart'))
 
-        flash("Your order has been placed successfully!", "success")
-        return redirect(url_for('payment',order_id= order_id))
-
-    return render_template('order.html', pizza=pizza)
+    return render_template('customization.html', pizza=pizza)
 
 @app.route('/orders')
 def orders():
     if 'user_id' not in session:
         flash("Please login first", "danger")
-        return redirect(url_for('choose_auth'))
+        return redirect(url_for('login'))
 
     user_id = session['user_id']
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     cursor.execute("""
-        SELECT o.id, p.name, o.size, o.quantity, o.total_price, o.status, o.created_at
+        SELECT o.id, p.name, o.size, o.quantity, o.total_price,
+               o.status, o.payment_status, o.payment_method, o.created_at
         FROM orders o
         JOIN pizzas p ON o.pizza_id = p.id
         WHERE o.user_id = %s
@@ -228,7 +229,7 @@ def cancel_order(order_id):
 
 @app.route('/customize/<int:pizza_id>', methods=['GET', 'POST'])
 def customize_pizza(pizza_id):
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("SELECT * FROM pizzas WHERE id = %s", (pizza_id,))
     pizza = cursor.fetchone()
 
@@ -238,60 +239,86 @@ def customize_pizza(pizza_id):
 
     if request.method == 'POST':
         size = request.form['size']
-        quantity = int(request.form['quantity'])
         crust = request.form['crust']
         cheese = request.form['cheese']
-        toppings = request.form.getlist('toppings')
-        extras = request.form.get('extras', '').strip()
+        toppings = ','.join(request.form.getlist('toppings')) or None
+        extras = request.form.get('extras') or None
+        quantity = int(request.form.get('quantity', 1))
 
-        base_price = pizza[3]  # The pizza price from the database
-
-        # Apply size-based price adjustments
+        # Calculate price
+        unit_price = float(pizza['price'])
         if size == 'medium':
-            price = base_price + 100
+            unit_price += 100
         elif size == 'large':
-            price = base_price + 200
-        else:
-            price = base_price  # small size
-
-        # Apply extra cheese price adjustment
+            unit_price += 200
         if cheese == 'extra':
-            price += 50
+            unit_price += 50
 
-        total_price = price * quantity
-
-        # Store the customized pizza in the orders table or show on the payment page
-        user_id = session['user_id']
+        # Add to cart instead of orders
         cursor.execute("""
-            INSERT INTO orders (user_id, pizza_id, size, quantity, crust, cheese, toppings, extras, total_price, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (user_id, pizza_id, size, quantity, crust, cheese, ', '.join(toppings), extras, total_price, 'pending'))
-        order_id = cursor.lastrowid 
-        mysql.connection.commit()
+            INSERT INTO cart(user_id, pizza_id, size, crust, cheese, toppings, extras, quantity, unit_price)
+            VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """, (session['user_id'], pizza_id, size, crust, cheese, toppings, extras, quantity, unit_price))
 
+        mysql.connection.commit()
         flash("Your customized pizza has been added to the cart!", "success")
-        return redirect(url_for('payment', order_id=order_id))  # Assuming insert_id() gives the latest order ID
+        return redirect(url_for('view_cart'))
 
     return render_template('customize.html', pizza=pizza)
 
-@app.route('/payment/<int:order_id>', methods=['GET', 'POST'])
-def payment(order_id):
-    cursor = mysql.connection.cursor()
-    cursor.execute("SELECT * FROM orders WHERE id = %s AND user_id = %s", (order_id, session['user_id']))
-    order = cursor.fetchone()
+# Unified payment route
+@app.route('/payment', methods=['GET', 'POST'])
+def payment():
+    if 'user_id' not in session:
+        flash("Login first", "danger")
+        return redirect(url_for('login'))
 
-    if not order:
-        flash("Order not found!", "danger")
-        return redirect(url_for('home'))
+    user_id = session['user_id']
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    # Get cart items
+    cursor.execute("SELECT * FROM cart WHERE user_id = %s", (user_id,))
+    cart_items = cursor.fetchall()
+
+    if not cart_items:
+        flash("Your cart is empty!", "warning")
+        return redirect(url_for('view_cart'))
+
+    total_amount = sum(item['unit_price'] * item['quantity'] for item in cart_items)
 
     if request.method == 'POST':
-        payment_method = request.form['payment_method']
-        cursor.execute("UPDATE orders SET payment_method = %s, status = %s WHERE id = %s", (payment_method, 'paid', order_id))
+        payment_method = request.form.get('payment_method')
+        if not payment_method:
+            flash("Please select a payment method.", "warning")
+            return redirect(url_for('payment'))
+
+        # Move cart items to orders
+        for item in cart_items:
+            cursor.execute("""
+                INSERT INTO orders (
+                    user_id, pizza_id, size, crust, cheese, toppings, extras, quantity, total_price, status, payment_method
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                user_id,
+                item['pizza_id'],
+                item['size'],
+                item['crust'],
+                item['cheese'],
+                item['toppings'],
+                item['extras'],
+                item['quantity'],
+                item['unit_price'] * item['quantity'],
+                'paid',
+                payment_method
+            ))
+
+        cursor.execute("DELETE FROM cart WHERE user_id = %s", (user_id,))
         mysql.connection.commit()
-        flash("Payment successful! Your order is being processed.", "success")
+
+        flash(f"Payment of NPR {total_amount} successful! Your orders are being processed.", "success")
         return redirect(url_for('orders'))
 
-    return render_template('payment.html', order=order)
+    return render_template('payment.html', cart_items=cart_items, total=total_amount)
 
 @app.route('/admin/dashboard')
 def admin_dashboard():
@@ -300,13 +327,13 @@ def admin_dashboard():
         return redirect(url_for('login'))
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-
     search_query = request.args.get('q', '').strip()
+
     if search_query:
         like_pattern = f"%{search_query}%"
         query = '''
             SELECT o.id, u.username, o.address, p.name, o.size, o.quantity,
-                   o.total_price, o.status, o.created_at
+                   o.total_price, o.status, o.payment_status, o.created_at
             FROM orders o
             JOIN users u ON o.user_id = u.id
             JOIN pizzas p ON o.pizza_id = p.id
@@ -317,7 +344,7 @@ def admin_dashboard():
     else:
         query = '''
             SELECT o.id, u.username, o.address, p.name, o.size, o.quantity,
-                   o.total_price, o.status, o.created_at
+                   o.total_price, o.status, o.payment_status, o.created_at
             FROM orders o
             JOIN users u ON o.user_id = u.id
             JOIN pizzas p ON o.pizza_id = p.id
@@ -328,15 +355,14 @@ def admin_dashboard():
     orders = cursor.fetchall()
     return render_template('admin_dashboard.html', orders=orders)
 
-
 def auto_update_order_status():
-    with app.app_context():  # to use db inside job
-        cursor = mysql.connection.cursor()
+    with app.app_context():
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         cursor.execute("SELECT id, created_at, status FROM orders")
         orders = cursor.fetchall()
 
         for order in orders:
-            order_id, created_at, status = order
+            order_id, created_at, status = order['id'], order['created_at'], order['status']
             now = datetime.now()
             time_passed = now - created_at
 
@@ -347,7 +373,7 @@ def auto_update_order_status():
 
         mysql.connection.commit()
 
-# Schedule it to run every 17 minutes
+#schedule it to run every 17 minutes
 scheduler.add_job(id='AutoStatusUpdate', func=auto_update_order_status, trigger='interval', minutes=17)
 
 @app.route('/update_order_status/<int:order_id>', methods=['POST'])
@@ -375,16 +401,39 @@ def add_to_cart(pizza_id):
         flash("Please login first", "danger")
         return redirect(url_for('login'))
 
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT * FROM pizzas WHERE id=%s", (pizza_id,))
+    pizza = cursor.fetchone()
+    if not pizza:
+        flash("Pizza not found!", "danger")
+        return redirect(url_for('home'))
+
+    # Get customization data
+    size = request.form.get('size', 'small')
+    crust = request.form.get('crust', 'thin')
+    cheese = request.form.get('cheese', 'normal')
+    toppings = ','.join(request.form.getlist('toppings')) or None
+    extras = request.form.get('extras') or None
     quantity = int(request.form.get('quantity', 1))
-    user_id = session['user_id']
 
-    cursor = mysql.connection.cursor()
-    cursor.execute("INSERT INTO cart (user_id, pizza_id, quantity) VALUES (%s, %s, %s)",
-                   (user_id, pizza_id, quantity))
+    # Calculate unit price
+    unit_price = float(pizza['price'])
+    if size == 'medium':
+        unit_price += 100
+    elif size == 'large':
+        unit_price += 200
+    if cheese == 'extra':
+        unit_price += 50
+
+    # Insert as a new row every time (no merging)
+    cursor.execute("""
+        INSERT INTO cart(user_id, pizza_id, size, crust, cheese, toppings, extras, quantity, unit_price)
+        VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)
+    """, (session['user_id'], pizza_id, size, crust, cheese, toppings, extras, quantity, unit_price))
+
     mysql.connection.commit()
-
-    flash("Pizza added to cart!", "success")
-    return redirect(url_for('home'))
+    flash("Customized pizza added to cart!", "success")
+    return redirect(url_for('view_cart'))
 
 @app.route('/cart')
 def view_cart():
@@ -394,15 +443,27 @@ def view_cart():
 
     user_id = session['user_id']
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
     cursor.execute("""
-        SELECT c.id as cart_id, p.id as pizza_id, p.name, p.price, c.quantity, (p.price * c.quantity) as subtotal
+        SELECT 
+            c.id AS cart_id,
+            p.id AS pizza_id,
+            p.name,
+            c.size,
+            c.crust,
+            c.cheese,
+            c.toppings,
+            c.extras,
+            c.quantity,
+            c.unit_price,
+            (c.unit_price * c.quantity) AS subtotal
         FROM cart c
         JOIN pizzas p ON c.pizza_id = p.id
         WHERE c.user_id = %s
     """, (user_id,))
+    
     cart_items = cursor.fetchall()
-
-    total = sum(item['subtotal'] for item in cart_items)
+    total = sum([item['subtotal'] for item in cart_items]) if cart_items else 0
 
     return render_template('cart.html', cart_items=cart_items, total=total)
 
@@ -416,46 +477,44 @@ def remove_from_cart(cart_id):
 
 @app.route('/checkout-cart', methods=['POST'])
 def checkout_cart():
-    user_id = session['user_id']
-    cursor = mysql.connection.cursor()
-    cursor.execute("SELECT pizza_id, quantity FROM cart WHERE user_id = %s", (user_id,))
-    items = cursor.fetchall()
-
-    for item in items:
-        cursor.execute("INSERT INTO orders (user_id, pizza_id, size, quantity, total_price, status) "
-                       "SELECT %s, %s, %s, %s, price * %s, %s FROM pizzas WHERE id = %s",
-                       (user_id, item[0], 'small', item[1], item[1], 'pending', item[0]))
-
-    cursor.execute("DELETE FROM cart WHERE user_id = %s", (user_id,))
-    mysql.connection.commit()
-
-    flash("Order placed from cart!", "success")
-    return redirect(url_for('orders'))
-
-
-def generate_referral_code(length=6):
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
-
-@app.route('/referral')
-def referral():
     if 'user_id' not in session:
-        flash("Login required", "warning")
+        flash("Login first", "danger")
         return redirect(url_for('login'))
 
     user_id = session['user_id']
-    cursor = mysql.connection.cursor()
-    cursor.execute("SELECT referral_code FROM referrals WHERE user_id = %s", (user_id,))
-    result = cursor.fetchone()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    if not result:
-        code = generate_referral_code()
-        cursor.execute("INSERT INTO referrals (user_id, referral_code) VALUES (%s, %s)", (user_id, code))
-        mysql.connection.commit()
-        referral_code = code
-    else:
-        referral_code = result[0]
+    cursor.execute("SELECT * FROM cart WHERE user_id = %s", (user_id,))
+    items = cursor.fetchall()
 
-    return render_template("referral.html", referral_code=referral_code)
+    if not items:
+        flash("Your cart is empty!", "warning")
+        return redirect(url_for('view_cart'))
+
+    for item in items:
+        cursor.execute("""
+            INSERT INTO orders (
+                user_id, pizza_id, size, crust, cheese, toppings, extras, quantity, total_price, status
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            user_id,
+            item['pizza_id'],
+            item['size'],
+            item['crust'],
+            item['cheese'],
+            item['toppings'],
+            item['extras'],
+            item['quantity'],
+            item['unit_price'] * item['quantity'],
+            'pending'
+        ))
+
+    # Clear cart after checkout
+    cursor.execute("DELETE FROM cart WHERE user_id = %s", (user_id,))
+    mysql.connection.commit()
+
+    flash("Order placed successfully from cart!", "success")
+    return redirect(url_for('payment'))
 
 @app.route('/spin')
 def spin_wheel():

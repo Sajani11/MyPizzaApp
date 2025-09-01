@@ -1,11 +1,17 @@
 {% extends 'layout.html' %} {% block content %}
 <div class="container mt-5">
   <h2 class="text-center mb-4">🛒 Your Cart</h2>
+
   {% if cart_items %}
   <table class="table table-striped">
     <thead>
       <tr>
         <th>Pizza</th>
+        <th>Size</th>
+        <th>Crust</th>
+        <th>Cheese</th>
+        <th>Toppings</th>
+        <th>Extras</th>
         <th>Quantity</th>
         <th>Price</th>
         <th>Subtotal</th>
@@ -16,8 +22,13 @@
       {% for item in cart_items %}
       <tr>
         <td>{{ item.name }}</td>
+        <td>{{ item.size }}</td>
+        <td>{{ item.crust }}</td>
+        <td>{{ item.cheese }}</td>
+        <td>{{ item.toppings if item.toppings else '-' }}</td>
+        <td>{{ item.extras if item.extras else '-' }}</td>
         <td>{{ item.quantity }}</td>
-        <td>Rs. {{ item.price }}</td>
+        <td>Rs. {{ item.unit_price }}</td>
         <td>Rs. {{ item.subtotal }}</td>
         <td>
           <form
@@ -31,10 +42,11 @@
       {% endfor %}
     </tbody>
   </table>
+
   <div class="text-end">
     <h4>Total: Rs. {{ total }}</h4>
-    <form action="{{ url_for('checkout_cart') }}" method="POST">
-      <button type="submit" class="btn btn-success">Place Order</button>
+    <form action="{{ url_for('payment') }}" method="POST">
+      <button type="submit" class="btn btn-success w-100">Place order</button>
     </form>
   </div>
   {% else %}
