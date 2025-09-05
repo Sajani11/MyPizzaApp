@@ -14,6 +14,11 @@
   text-shadow: 0 0 5px #fff;
 }
 
+.nav-link.active {
+  color: #131312 !important;
+  text-shadow: 0 0 8px #c5ee79;
+}
+
 /* Buttons */
 .btn-glow {
   background-color: #f44336;

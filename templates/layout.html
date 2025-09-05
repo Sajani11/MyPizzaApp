@@ -39,68 +39,105 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav ms-auto">
+            <!-- Home -->
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('home') }}">
+              <a
+                class="nav-link {% if request.endpoint == 'home' %}active{% endif %}"
+                href="{{ url_for('home') }}"
+              >
                 <i class="fas fa-home"></i> Home
               </a>
             </li>
+
             {% if session.get('user_id') %} {% if session.get('role') ==
             'customer' %}
             <!-- Customer-specific nav -->
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('orders') }}">
+              <a
+                class="nav-link {% if request.endpoint == 'orders' %}active{% endif %}"
+                href="{{ url_for('orders') }}"
+              >
                 <i class="fas fa-receipt"></i> My Orders
               </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('view_cart') }}">
+              <a
+                class="nav-link {% if request.endpoint == 'view_cart' %}active{% endif %}"
+                href="{{ url_for('view_cart') }}"
+              >
                 <i class="fas fa-shopping-cart"></i> Cart
               </a>
             </li>
-
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('view_rewards') }}">
+              <a
+                class="nav-link {% if request.endpoint == 'view_rewards' %}active{% endif %}"
+                href="{{ url_for('view_rewards') }}"
+              >
                 <i class="fas fa-gift"></i> My Rewards
               </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('spin_wheel') }}">
+              <a
+                class="nav-link {% if request.endpoint == 'spin_wheel' %}active{% endif %}"
+                href="{{ url_for('spin_wheel') }}"
+              >
                 <i class="fas fa-dice"></i> Spin
               </a>
             </li>
+
             {% elif session.get('role') == 'admin' %}
             <!-- Admin-specific nav -->
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+              <a
+                class="nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}"
+                href="{{ url_for('admin_dashboard') }}"
+              >
                 <i class="fas fa-cogs"></i> Admin Dashboard
               </a>
             </li>
-            <!-- Add Pizza button for admin -->
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('add_pizza') }}">
+              <a
+                class="nav-link {% if request.endpoint == 'add_pizza' %}active{% endif %}"
+                href="{{ url_for('add_pizza') }}"
+              >
                 <i class="fas fa-plus-circle"></i> Add Pizza
               </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('admin_spin_rewards') }}">
+              <a
+                class="nav-link {% if request.endpoint == 'admin_spin_rewards' %}active{% endif %}"
+                href="{{ url_for('admin_spin_rewards') }}"
+              >
                 <i class="fas fa-gift"></i> View Spin Rewards
               </a>
             </li>
             {% endif %}
-            <!-- Common Logout button -->
+
+            <!-- Common Logout -->
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('logout') }}">
+              <a
+                class="nav-link {% if request.endpoint == 'logout' %}active{% endif %}"
+                href="{{ url_for('logout') }}"
+              >
                 <i class="fas fa-sign-out-alt"></i> Logout
               </a>
             </li>
+
             {% else %}
+            <!-- Guest -->
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('login') }}">
+              <a
+                class="nav-link {% if request.endpoint == 'login' %}active{% endif %}"
+                href="{{ url_for('login') }}"
+              >
                 <i class="fas fa-sign-in-alt"></i> Login
               </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('register') }}">
+              <a
+                class="nav-link {% if request.endpoint == 'register' %}active{% endif %}"
+                href="{{ url_for('register') }}"
+              >
                 <i class="fas fa-user-plus"></i> Register
               </a>
             </li>
