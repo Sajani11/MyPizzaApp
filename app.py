@@ -177,6 +177,78 @@ def order_pizza(pizza_id):
 
     return render_template('customization.html', pizza=pizza)
 
+#order the pizza
+@app.route('/place-order', methods=['GET', 'POST'])
+def place_order():
+    if 'user_id' not in session:
+        flash("Please login first", "danger")
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    # Get cart items
+    cursor.execute("""
+        SELECT c.*, p.name, p.price
+        FROM cart c
+        JOIN pizzas p ON c.pizza_id = p.id
+        WHERE c.user_id = %s
+    """, (user_id,))
+    cart_items = cursor.fetchall()
+
+    if not cart_items:
+        flash("Your cart is empty!", "warning")
+        return redirect(url_for('view_cart'))
+
+    # Calculate subtotal for each item and total for cart
+    for item in cart_items:
+        item['subtotal'] = float(item['unit_price']) * int(item['quantity'])
+    total_price = sum(item['subtotal'] for item in cart_items)
+
+    if request.method == 'POST':
+        address = request.form.get('address')
+        payment_method = request.form.get('payment_method')
+
+        if not address:
+            flash("Please enter a delivery address.", "warning")
+            return redirect(url_for('place_order'))
+
+        if not payment_method:
+            flash("Please select a payment method.", "warning")
+            return redirect(url_for('place_order'))
+
+        # Move cart items to orders with payment info
+        for item in cart_items:
+            cursor.execute("""
+                INSERT INTO orders (
+                    user_id, pizza_id, size, crust, cheese, toppings, extras,
+                    quantity, total_price, address, status, payment_method, payment_status
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                user_id,
+                item['pizza_id'],
+                item['size'],
+                item['crust'],
+                item['cheese'],
+                item['toppings'],
+                item['extras'],
+                item['quantity'],
+                item['subtotal'],
+                address,
+                'pending',
+                payment_method,
+                'paid' if payment_method != 'cod' else 'unpaid'  # COD stays unpaid
+            ))
+
+        # Clear cart after placing order
+        cursor.execute("DELETE FROM cart WHERE user_id = %s", (user_id,))
+        mysql.connection.commit()
+
+        flash(f"Order placed successfully! Payment method: {payment_method}", "success")
+        return redirect(url_for('orders'))
+
+    return render_template('order.html', cart_items=cart_items, total_price=total_price)
+
 @app.route('/orders')
 def orders():
     if 'user_id' not in session:
@@ -261,64 +333,10 @@ def customize_pizza(pizza_id):
         """, (session['user_id'], pizza_id, size, crust, cheese, toppings, extras, quantity, unit_price))
 
         mysql.connection.commit()
-        flash("Your customized pizza has been added to the cart!", "success")
+        flash("Your Customized pizza has been added to the cart!", "success")
         return redirect(url_for('view_cart'))
 
     return render_template('customize.html', pizza=pizza)
-
-# Unified payment route
-@app.route('/payment', methods=['GET', 'POST'])
-def payment():
-    if 'user_id' not in session:
-        flash("Login first", "danger")
-        return redirect(url_for('login'))
-
-    user_id = session['user_id']
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-
-    # Get cart items
-    cursor.execute("SELECT * FROM cart WHERE user_id = %s", (user_id,))
-    cart_items = cursor.fetchall()
-
-    if not cart_items:
-        flash("Your cart is empty!", "warning")
-        return redirect(url_for('view_cart'))
-
-    total_amount = sum(item['unit_price'] * item['quantity'] for item in cart_items)
-
-    if request.method == 'POST':
-        payment_method = request.form.get('payment_method')
-        if not payment_method:
-            flash("Please select a payment method.", "warning")
-            return redirect(url_for('payment'))
-
-        # Move cart items to orders
-        for item in cart_items:
-            cursor.execute("""
-                INSERT INTO orders (
-                    user_id, pizza_id, size, crust, cheese, toppings, extras, quantity, total_price, status, payment_method
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (
-                user_id,
-                item['pizza_id'],
-                item['size'],
-                item['crust'],
-                item['cheese'],
-                item['toppings'],
-                item['extras'],
-                item['quantity'],
-                item['unit_price'] * item['quantity'],
-                'paid',
-                payment_method
-            ))
-
-        cursor.execute("DELETE FROM cart WHERE user_id = %s", (user_id,))
-        mysql.connection.commit()
-
-        flash(f"Payment of NPR {total_amount} successful! Your orders are being processed.", "success")
-        return redirect(url_for('orders'))
-
-    return render_template('payment.html', cart_items=cart_items, total=total_amount)
 
 @app.route('/admin/dashboard')
 def admin_dashboard():
@@ -384,7 +402,7 @@ def update_status(order_id):
 
     status = request.form.get('status')
 
-    if status not in ['pending', 'completed', 'cancelled']:
+    if status not in ['pending', 'completed', 'Delivered']:
         flash("Invalid status.", "danger")
         return redirect(url_for('admin_dashboard'))
 
@@ -432,7 +450,7 @@ def add_to_cart(pizza_id):
     """, (session['user_id'], pizza_id, size, crust, cheese, toppings, extras, quantity, unit_price))
 
     mysql.connection.commit()
-    flash("Customized pizza added to cart!", "success")
+    flash("Pizza added to cart!", "success")
     return redirect(url_for('view_cart'))
 
 @app.route('/cart')

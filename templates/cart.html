@@ -45,8 +45,8 @@
 
   <div class="text-end">
     <h4>Total: Rs. {{ total }}</h4>
-    <form action="{{ url_for('payment') }}" method="POST">
-      <button type="submit" class="btn btn-success w-100">Place order</button>
+    <form action="{{ url_for('place_order') }}" method="POST">
+      <button type="submit" class="btn btn-success w-100">Place Order</button>
     </form>
   </div>
   {% else %}
