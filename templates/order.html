@@ -1,47 +1,50 @@
 {% extends 'layout.html' %} {% block content %}
 <div class="container mt-5">
-  <h2 class="text-center mb-4">🚚 Order Your Pizza</h2>
-  <div class="card shadow p-4">
-    <h4>{{ pizza.name }}</h4>
-    <p>{{ pizza.description }}</p>
-    <form method="POST">
-      <div class="form-group mb-3">
-        <label>Choose Category:</label>
-        <select name="category" class="form-control" required>
-          <option value="Veg">Veg</option>
-          <option value="Non-Veg">Non-Veg</option>
-        </select>
-      </div>
-      <div class="form-group mb-3">
-        <label>Choose Size:</label>
-        <select name="size" class="form-control" required>
-          <option value="Small">Small</option>
-          <option value="Medium">Medium</option>
-          <option value="Large">Large</option>
-        </select>
-      </div>
-      <div class="form-group mb-3">
-        <label>Quantity:</label>
-        <input
-          type="number"
-          name="quantity"
-          class="form-control"
-          min="1"
-          value="1"
-          required
-        />
-      </div>
+  <h2 class="text-center mb-4">🚚 Confirm Your Order & Payment</h2>
+
+  <form method="POST">
+    {% for item in cart_items %}
+    <div class="card shadow p-4 mb-3">
+      <h4>{{ item.name }}</h4>
+      <p>
+        Size: {{ item.size }} | Quantity: {{ item.quantity }} | Crust: {{
+        item.crust }} | Cheese: {{ item.cheese }} {% if item.toppings %} |
+        Toppings: {{ item.toppings }}{% endif %} {% if item.extras %} | Extras:
+        {{ item.extras }}{% endif %}
+      </p>
+      <p>Subtotal: NPR {{ item.subtotal }}</p>
+    </div>
+    {% endfor %}
+
+    <div class="card shadow p-4 mb-4">
       <div class="form-group mb-3">
         <label>Delivery Address:</label>
         <textarea
           name="address"
           class="form-control"
           rows="3"
+          placeholder="Enter your delivery location"
           required
         ></textarea>
       </div>
-      <button type="submit" class="btn btn-primary w-100">Place Order</button>
-    </form>
-  </div>
+
+      <div class="form-group mb-3">
+        <label for="payment_method">Select Payment Option:</label>
+        <select name="payment_method" class="form-control" required>
+          <option value="esewa">eSewa 💚</option>
+          <option value="khalti">Khalti 💜</option>
+          <option value="imepay">IME Pay 🔴</option>
+          <option value="cod">Cash on Delivery 💵</option>
+          <option value="bank_transfer">Bank Transfer 🏦</option>
+        </select>
+      </div>
+
+      <p class="fw-bold">Total Amount: NPR {{ total_price }}</p>
+    </div>
+
+    <button type="submit" class="btn btn-primary w-100">
+      Place Order & Pay
+    </button>
+  </form>
 </div>
 {% endblock %}

@@ -1,65 +1,146 @@
 {% extends "layout.html" %} {% block content %}
-<div class="container">
-  <h2 class="mt-4">Add New Pizza</h2>
-
-  <!-- Flash Messages -->
-  {% with messages = get_flashed_messages(with_categories=true) %} {% if
-  messages %}
-  <div class="alert alert-info">
-    {% for category, message in messages %}
-    <p>{{ message }}</p>
-    {% endfor %}
-  </div>
-  {% endif %} {% endwith %}
-
+<div class="card p-4 shadow">
+  <h2 class="mb-3">Add a New Pizza</h2>
   <!-- Add Pizza Form -->
-  <form action="{{ url_for('add_pizza') }}" method="POST">
-    <div class="form-group">
-      <label for="pizza_name">Pizza Name</label>
+  <form
+    action="{{ url_for('add_pizza') }}"
+    method="POST"
+    enctype="multipart/form-data"
+    class="shadow p-4 rounded bg-light"
+  >
+    <div class="mb-3">
+      <label for="pizza_name" class="form-label">Pizza Name</label>
       <input
         type="text"
         class="form-control"
         id="pizza_name"
         name="pizza_name"
+        placeholder="e.g., Margherita"
         required
       />
     </div>
 
-    <div class="form-group">
-      <label for="description">Description</label>
+    <div class="mb-3">
+      <label for="description" class="form-label">Description</label>
       <textarea
         class="form-control"
         id="description"
         name="description"
         rows="3"
+        placeholder="Enter a short description"
         required
       ></textarea>
     </div>
 
-    <div class="form-group">
-      <label for="price">Price</label>
+    <div class="mb-3">
+      <label for="price" class="form-label">Price (Rs.)</label>
       <input
         type="number"
         class="form-control"
         id="price"
         name="price"
         step="0.01"
+        placeholder="e.g., 499"
         required
       />
     </div>
 
-    <div class="form-group">
-      <label for="image_url">Image URL</label>
+    <div class="mb-3">
+      <label class="form-label">Image Source</label><br />
+      <div class="form-check form-check-inline">
+        <input
+          class="form-check-input"
+          type="radio"
+          name="image_source"
+          id="source_url"
+          value="url"
+          checked
+          onchange="toggleImageInput(this.value)"
+        />
+        <label class="form-check-label" for="source_url">URL</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input
+          class="form-check-input"
+          type="radio"
+          name="image_source"
+          id="source_upload"
+          value="upload"
+          onchange="toggleImageInput(this.value)"
+        />
+        <label class="form-check-label" for="source_upload">Upload</label>
+      </div>
+    </div>
+
+    <div class="mb-3" id="urlInputDiv">
+      <label for="image_url" class="form-label">Image URL</label>
       <input
         type="url"
         class="form-control"
         id="image_url"
         name="image_url"
-        required
+        placeholder="Paste a valid image URL"
       />
     </div>
 
-    <button type="submit" class="btn btn-primary mt-3">Add Pizza</button>
+    <div class="mb-3" id="uploadInputDiv" style="display: none">
+      <label for="image_file" class="form-label">Upload Image</label>
+      <input
+        type="file"
+        class="form-control"
+        id="image_file"
+        name="image_file"
+        accept="image/*"
+      />
+    </div>
+
+    <img
+      id="imagePreview"
+      src=""
+      alt="Image Preview"
+      style="display: none; width: 100px; height: auto; margin-top: 10px"
+    />
+
+    <div class="d-grid">
+      <button type="submit" class="btn btn-primary">Add Pizza</button>
+    </div>
   </form>
 </div>
+<script>
+  function toggleImageInput(source) {
+    const urlDiv = document.getElementById("urlInputDiv");
+    const fileDiv = document.getElementById("uploadInputDiv");
+
+    if (source === "url") {
+      urlDiv.style.display = "block";
+      fileDiv.style.display = "none";
+    } else {
+      urlDiv.style.display = "none";
+      fileDiv.style.display = "block";
+    }
+  }
+
+  // Optional: live preview for URL
+  document.getElementById("image_url").addEventListener("input", function () {
+    const preview = document.getElementById("imagePreview");
+    preview.src = this.value;
+    preview.style.display = this.value ? "block" : "none";
+  });
+  document
+    .getElementById("image_file")
+    .addEventListener("change", function (e) {
+      const preview = document.getElementById("imagePreview");
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          preview.src = event.target.result;
+          preview.style.display = "block";
+        };
+        reader.readAsDataURL(file);
+      } else {
+        preview.style.display = "none";
+      }
+    });
+</script>
 {% endblock %}

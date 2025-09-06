@@ -27,7 +27,7 @@
     <nav class="navbar navbar-expand-lg navbar-glow sticky-top">
       <div class="container">
         <a class="navbar-brand fw-bold" href="{{ url_for('home') }}">
-          <i class="fas fa-pizza-slice"></i> Pizza Center
+          <i class="fas fa-pizza-slice"></i> Pizza Slice
         </a>
         <button
           class="navbar-toggler bg-light"
@@ -39,45 +39,126 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav ms-auto">
+            <!-- Home -->
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('home') }}"
-                ><i class="fas fa-home"></i> Home</a
+              <a
+                class="nav-link {% if request.endpoint == 'home' %}active{% endif %}"
+                href="{{ url_for('home') }}"
               >
+                <i class="fas fa-home"></i> Home
+              </a>
             </li>
 
-            {% if session.get('user_id') %}
+            {% if session.get('user_id') %} {% if session.get('role') ==
+            'customer' %}
+            <!-- Customer-specific nav -->
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('orders') }}"
-                ><i class="fas fa-receipt"></i> My Orders</a
+              <a
+                class="nav-link {% if request.endpoint == 'orders' %}active{% endif %}"
+                href="{{ url_for('orders') }}"
               >
+                <i class="fas fa-receipt"></i> My Orders
+              </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('logout') }}"
-                ><i class="fas fa-sign-out-alt"></i> Logout</a
+              <a
+                class="nav-link {% if request.endpoint == 'view_cart' %}active{% endif %}"
+                href="{{ url_for('view_cart') }}"
               >
-            </li>
-            {% if session.get('role') == 'admin' %}
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('admin_dashboard') }}"
-                ><i class="fas fa-cogs"></i> Admin_Dashboard</a
-              >
-            </li>
-            s {% endif %} {% else %}
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('login') }}"
-                ><i class="fas fa-sign-in-alt"></i> Login</a
-              >
+                <i class="fas fa-shopping-cart"></i> Cart
+              </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('register') }}"
-                ><i class="fas fa-user-plus"></i> Register</a
+              <a
+                class="nav-link {% if request.endpoint == 'view_rewards' %}active{% endif %}"
+                href="{{ url_for('view_rewards') }}"
               >
+                <i class="fas fa-gift"></i> My Rewards
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link {% if request.endpoint == 'spin_wheel' %}active{% endif %}"
+                href="{{ url_for('spin_wheel') }}"
+              >
+                <i class="fas fa-dice"></i> Spin
+              </a>
+            </li>
+
+            {% elif session.get('role') == 'admin' %}
+            <!-- Admin-specific nav -->
+            <li class="nav-item">
+              <a
+                class="nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}"
+                href="{{ url_for('admin_dashboard') }}"
+              >
+                <i class="fas fa-cogs"></i> Admin Dashboard
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link {% if request.endpoint == 'add_pizza' %}active{% endif %}"
+                href="{{ url_for('add_pizza') }}"
+              >
+                <i class="fas fa-plus-circle"></i> Add Pizza
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link {% if request.endpoint == 'admin_spin_rewards' %}active{% endif %}"
+                href="{{ url_for('admin_spin_rewards') }}"
+              >
+                <i class="fas fa-gift"></i> View Spin Rewards
+              </a>
+            </li>
+            {% endif %}
+
+            <!-- Common Logout -->
+            <li class="nav-item">
+              <a
+                class="nav-link {% if request.endpoint == 'logout' %}active{% endif %}"
+                href="{{ url_for('logout') }}"
+              >
+                <i class="fas fa-sign-out-alt"></i> Logout
+              </a>
+            </li>
+
+            {% else %}
+            <!-- Guest -->
+            <li class="nav-item">
+              <a
+                class="nav-link {% if request.endpoint == 'login' %}active{% endif %}"
+                href="{{ url_for('login') }}"
+              >
+                <i class="fas fa-sign-in-alt"></i> Login
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link {% if request.endpoint == 'register' %}active{% endif %}"
+                href="{{ url_for('register') }}"
+              >
+                <i class="fas fa-user-plus"></i> Register
+              </a>
             </li>
             {% endif %}
           </ul>
         </div>
       </div>
     </nav>
+
+    <!-- Back Button -->
+    {% if request.endpoint != 'home' %}
+    <div class="container mt-3 d-flex justify-content-end">
+      <button
+        class="btn btn-secondary"
+        onclick="window.history.back()"
+        aria-label="Go Back"
+      >
+        <i class="fas fa-arrow-left"></i> Back
+      </button>
+    </div>
+    {% endif %}
 
     <div class="container mt-3">
       {% with messages = get_flashed_messages(with_categories=true) %} {% if
@@ -103,7 +184,7 @@
       <div class="container py-4">
         <div class="row">
           <div class="col-md-3">
-            <h5>About Pizza Center</h5>
+            <h5>About Us</h5>
             <p>
               Your favorite destination for delicious, freshly-baked pizzas made
               with love and premium ingredients!
@@ -113,7 +194,7 @@
           <div class="col-md-3">
             <h5>Contact Us</h5>
             <p><i class="fas fa-phone-alt"></i> +977-9800000000</p>
-            <p><i class="fas fa-envelope"></i> contact@pizzacenter.com</p>
+            <p><i class="fas fa-envelope"></i> contact@pizzaslice.com</p>
             <p>
               <i class="fas fa-map-marker-alt"></i> Lakeside, Pokhara, Nepal
             </p>
@@ -150,5 +231,9 @@
         <hr class="bg-light" />
       </div>
     </footer>
+
+    {% block scripts %}
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    {% endblock %}
   </body>
 </html>

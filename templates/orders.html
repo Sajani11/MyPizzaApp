@@ -1,59 +1,38 @@
 {% extends 'layout.html' %} {% block content %}
-<div class="container mt-5">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="text-center">Your Orders</h2>
-    <a href="{{ url_for('home') }}" class="btn btn-secondary">← Back to Home</a>
-  </div>
+<h2 class="mb-4">Your Orders</h2>
 
-  {% if orders %}
-  <table class="table table-bordered table-hover text-center">
-    <thead class="thead-dark">
-      <tr>
-        <th>Pizza</th>
-        <th>Size</th>
-        <th>Quantity</th>
-        <th>Total Price (Rs.)</th>
-        <th>Status</th>
-        <th>Order Time</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for order in orders %}
-      <tr>
-        <td>{{ order[1] }}</td>
-        <!-- pizza name -->
-        <td>{{ order[2] }}</td>
-        <!-- size -->
-        <td>{{ order[3] }}</td>
-        <!-- quantity -->
-        <td>Rs. {{ order[4] }}</td>
-        <!-- total price -->
-        <td>{{ order[5] | capitalize }}</td>
-        <!-- status -->
-        <td>{{ order[6].strftime('%B %d, %Y %I:%M %p') }}</td>
-        <!-- created_at formatted -->
-
-        <td>
-          {% if order[5] == 'pending' %}
-          <form
-            method="POST"
-            action="{{ url_for('cancel_order', order_id=order[0]) }}"
-          >
-            <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
-          </form>
-          {% else %}
-          <span class="text-muted">N/A</span>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <div class="alert alert-info text-center">
-    You haven’t placed any orders yet.
-  </div>
-  {% endif %}
-</div>
-{% endblock %}
+{% if orders %}
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Order ID</th>
+      <th>Pizza</th>
+      <th>Size</th>
+      <th>Quantity</th>
+      <th>Total</th>
+      <th>Status</th>
+      <th>Payment</th>
+      <th>Ordered At</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for order in orders %}
+    <tr>
+      <td>{{ order.id }}</td>
+      <td>{{ order.name }}</td>
+      <td>{{ order.size }}</td>
+      <td>{{ order.quantity }}</td>
+      <td>Rs {{ order.total_price }}</td>
+      <td>{{ order.status }}</td>
+      <td>
+        {{ order.payment_status }}{% if order.payment_method %} ({{
+        order.payment_method }}){% endif %}
+      </td>
+      <td>{{ order.created_at.strftime('%B %d, %Y %I:%M %p') }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>You have no orders yet.</p>
+{% endif %} {% endblock %}

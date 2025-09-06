@@ -1,0 +1,89 @@
+{% extends "layout.html" %} {% block title %}Customize Pizza{% endblock %} {%
+block content %}
+<div class="container mt-5">
+  <h2 class="text-center mb-4">Customize Your {{ pizza[1] }}</h2>
+
+  <form method="POST">
+    <div class="mb-3">
+      <label for="size">Size:</label>
+      <select class="form-control" name="size" required>
+        <option value="small">Small</option>
+        <option value="medium">Medium (+Rs.100)</option>
+        <option value="large">Large (+Rs.200)</option>
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label for="quantity">Quantity:</label>
+      <input
+        type="number"
+        name="quantity"
+        class="form-control"
+        value="1"
+        min="1"
+        required
+      />
+    </div>
+
+    <div class="mb-3">
+      <label for="crust">Crust:</label>
+      <select class="form-control" name="crust" required>
+        <option value="thin">Thin</option>
+        <option value="thick">Thick</option>
+        <option value="stuffed">Stuffed</option>
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label for="cheese">Cheese:</label>
+      <select class="form-control" name="cheese" required>
+        <option value="normal">Normal</option>
+        <option value="extra">Extra Cheese (+Rs.50)</option>
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label>Toppings:</label><br />
+      <div class="form-check form-check-inline">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          name="toppings"
+          value="olives"
+        />
+        <label class="form-check-label">Olives</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          name="toppings"
+          value="onions"
+        />
+        <label class="form-check-label">Onions</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          name="toppings"
+          value="mushrooms"
+        />
+        <label class="form-check-label">Mushrooms</label>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label for="extras">Extras:</label>
+      <input
+        type="text"
+        name="extras"
+        class="form-control"
+        placeholder="E.g. spicy, less oil..."
+      />
+    </div>
+
+    <button type="submit" class="btn btn-success w-100">Add to Cart</button>
+  </form>
+</div>
+{% endblock %}
