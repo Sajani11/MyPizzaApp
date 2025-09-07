@@ -576,7 +576,7 @@ def get_spin_reward():
     if count >= 1:
         return jsonify({'reward': 'Already Spun Today'})
 
-    reward = random.choice(['Free Pizza', '50% Off', 'Extra Cheese', 'No Reward', 'Buy 1 Get 1'])
+    reward = random.choice(['Free Delivery', '10% Off', 'Extra Cheese', 'No Reward', 'Buy 1 Get 1'])
     cursor.execute("INSERT INTO spin_rewards (user_id, reward) VALUES (%s, %s)", (user_id, reward))
     mysql.connection.commit()
 
