@@ -134,3 +134,67 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 });
+
+const rewards = [
+  "Free Delivery",
+  "10% Off",
+  "Extra Cheese",
+  "No Reward",
+  "Buy 1 Get 1",
+];
+const angles = [36, 108, 180, 252, 324];
+
+const wheel = document.getElementById("wheel");
+const spinBtn = document.getElementById("spin-btn");
+const resultDiv = document.getElementById("result");
+
+let currentAngle = 0;
+
+spinBtn.addEventListener("click", () => {
+  spinBtn.disabled = true;
+
+  fetch("/get-spin-reward")
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.error) {
+        resultDiv.innerText = `⚠️ ${data.error}`;
+        spinBtn.disabled = false;
+        return;
+      }
+
+      const reward = data.reward;
+      const index = rewards.indexOf(reward);
+      if (index === -1) {
+        resultDiv.innerText = "⚠️ Error: Reward not recognized.";
+        spinBtn.disabled = false;
+        return;
+      }
+
+      // Spin 5 full rotations + target angle
+      const extraSpin = Math.floor(Math.random() * 30) - 15;
+      currentAngle += 360 * 5 + angles[index] + extraSpin;
+
+      wheel.style.transition = "transform 5s ease-out";
+      wheel.style.transform = `rotate(${currentAngle}deg)`;
+
+      function onTransitionEnd() {
+        document.querySelectorAll(".segment-label").forEach((label) => {
+          label.style.transform = `rotate(${-currentAngle}deg)`;
+        });
+        resultDiv.innerText = `🎉 You won: ${reward} 🎉`;
+
+        // Redirect after 2 seconds
+        setTimeout(() => {
+          window.location.href = "{{ redirect_after_spin }}";
+        }, 2000);
+
+        wheel.removeEventListener("transitionend", onTransitionEnd);
+      }
+
+      wheel.addEventListener("transitionend", onTransitionEnd);
+    })
+    .catch(() => {
+      resultDiv.innerText = "⚠️ Network error. Please try again.";
+      spinBtn.disabled = false;
+    });
+});

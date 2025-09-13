@@ -7,12 +7,12 @@
   <input type="text" name="q" class="form-control me-2" placeholder="Search by user, address, or pizza..." value="{{ request.args.get('q', '') }}">
   <button class="btn btn-outline-primary" type="submit">Search</button>
 </form>
-
 <table class="table table-bordered table-hover">
   <thead class="table-dark">
     <tr>
       <th>Order ID</th>
       <th>User</th>
+      <th>Contact Number</th>
       <th>Location</th>
       <th>Pizza</th>
       <th>Size</th>
@@ -28,6 +28,7 @@
     <tr>
       <td>{{ order.id }}</td>
       <td>{{ order.username }}</td>
+      <td>{{ order.contact_number }}</td>
       <td>{{ order.address }}</td>
       <td>{{ order.name }}</td>  
       <td>{{ order.size }}</td>
@@ -40,7 +41,7 @@
           <select name="status" class="form-select me-2" required>
             <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
             <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>Completed</option>
-            <option value="Delivered" {% if order.status == 'cancelled' %}selected{% endif %}>Delivered</option>
+            <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
           </select>
           <button type="submit" class="btn btn-sm btn-primary">Update</button>
         </form>
@@ -49,4 +50,5 @@
     {% endfor %}
   </tbody>
 </table>
+
 {% endblock %}
