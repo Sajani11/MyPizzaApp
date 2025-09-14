@@ -39,6 +39,7 @@ app.config.from_object(ConfigScheduler)
 scheduler = APScheduler()
 scheduler.init_app(app)
 scheduler.start()
+import MySQLdb
 
 @app.route('/')
 def home():
@@ -47,44 +48,71 @@ def home():
     pizzas = cursor.fetchall()
     return render_template('home.html', pizzas=pizzas)
 
-@app.route('/register', methods=['GET', 'POST'])
+@app.route('/register', methods=['GET','POST'])
 def register():
-    if request.method == 'POST':
-        name = request.form['name']
+    if request.method == 'POST':  # Only process POST requests
+        name = request.form['username']
         email = request.form['email']
         password = generate_password_hash(request.form['password'])
 
         cursor = mysql.connection.cursor()
-        cursor.execute("INSERT INTO users (username, email, password) VALUES (%s, %s, %s)", (name, email, password))
-        mysql.connection.commit()
-        flash('Registration successful! Please log in.')
-        return redirect(url_for('login'))
-    return render_template('register.html')
 
-import MySQLdb
+        # Generic check: see if email exists in users OR admins
+        cursor.execute("SELECT id FROM users WHERE email=%s", (email,))
+        user_exists = cursor.fetchone()
+
+        cursor.execute("SELECT id FROM admins WHERE username=%s", (email,))
+        admin_exists = cursor.fetchone()
+
+        if user_exists or admin_exists:
+            flash("Registration failed. Please try again.", "danger")
+            return redirect(url_for('register'))
+
+        # If not exists, insert new user
+        cursor.execute(
+            "INSERT INTO users (username, email, password) VALUES (%s, %s, %s)",
+            (name, email, password),
+        )
+        mysql.connection.commit()
+        cursor.close()
+
+        flash("Registration successful! Would you like to login.", "success")
+        return redirect(url_for("login"))
+
+    # GET request → show registration form
+    return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form['email']  # Change from 'username' to 'email'
+        email_or_username = request.form['email']  # Users use email, admins can use their username or email
         password = request.form['password']
 
-        # Use DictCursor to fetch rows as dictionaries
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
-        user = cursor.fetchone()
 
+      
+        cursor.execute("SELECT * FROM users WHERE email=%s", (email_or_username,))
+        user = cursor.fetchone()
         if user and check_password_hash(user['password'], password):
             session['user_id'] = user['id']
             session['username'] = user['username']
-            session['role'] = user['role']
-
+            session['role'] = user['role']  # 'admin' or 'customer'
             if user['role'] == 'admin':
                 return redirect(url_for('admin_dashboard'))
             else:
                 return redirect(url_for('home'))
 
-        flash('Invalid credentials. Please try again.', 'danger')
+        
+        cursor.execute("SELECT * FROM admins WHERE username=%s", (email_or_username,))
+        admin = cursor.fetchone()
+        if admin and check_password_hash(admin['password'], password):
+            session['user_id'] = admin['id']
+            session['username'] = admin['username']
+            session['role'] = 'admin'
+            return redirect(url_for('admin_dashboard'))
+
+        # If neither matched
+        flash("Invalid credentials. Please try again.", "danger")
 
     return render_template('login.html')
 
@@ -508,6 +536,7 @@ def add_to_cart(pizza_id):
 
 @app.route('/cart')
 def view_cart():
+
     if 'user_id' not in session:
         flash("Login to view your cart", "warning")
         return redirect(url_for('login'))
