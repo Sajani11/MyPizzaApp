@@ -39,6 +39,7 @@ app.config.from_object(ConfigScheduler)
 scheduler = APScheduler()
 scheduler.init_app(app)
 scheduler.start()
+import MySQLdb
 
 @app.route('/')
 def home():
@@ -47,44 +48,71 @@ def home():
     pizzas = cursor.fetchall()
     return render_template('home.html', pizzas=pizzas)
 
-@app.route('/register', methods=['GET', 'POST'])
+@app.route('/register', methods=['GET','POST'])
 def register():
-    if request.method == 'POST':
-        name = request.form['name']
+    if request.method == 'POST':  # Only process POST requests
+        name = request.form['username']
         email = request.form['email']
         password = generate_password_hash(request.form['password'])
 
         cursor = mysql.connection.cursor()
-        cursor.execute("INSERT INTO users (username, email, password) VALUES (%s, %s, %s)", (name, email, password))
-        mysql.connection.commit()
-        flash('Registration successful! Please log in.')
-        return redirect(url_for('login'))
-    return render_template('register.html')
 
-import MySQLdb
+        # Generic check: see if email exists in users OR admins
+        cursor.execute("SELECT id FROM users WHERE email=%s", (email,))
+        user_exists = cursor.fetchone()
+
+        cursor.execute("SELECT id FROM admins WHERE username=%s", (email,))
+        admin_exists = cursor.fetchone()
+
+        if user_exists or admin_exists:
+            flash("Registration failed. Please try again.", "danger")
+            return redirect(url_for('register'))
+
+        # If not exists, insert new user
+        cursor.execute(
+            "INSERT INTO users (username, email, password) VALUES (%s, %s, %s)",
+            (name, email, password),
+        )
+        mysql.connection.commit()
+        cursor.close()
+
+        flash("Registration successful! Would you like to login.", "success")
+        return redirect(url_for("login"))
+
+    # GET request → show registration form
+    return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form['email']  # Change from 'username' to 'email'
+        email_or_username = request.form['email']  # Users use email, admins can use their username or email
         password = request.form['password']
 
-        # Use DictCursor to fetch rows as dictionaries
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
-        user = cursor.fetchone()
 
+      
+        cursor.execute("SELECT * FROM users WHERE email=%s", (email_or_username,))
+        user = cursor.fetchone()
         if user and check_password_hash(user['password'], password):
             session['user_id'] = user['id']
             session['username'] = user['username']
-            session['role'] = user['role']
-
+            session['role'] = user['role']  # 'admin' or 'customer'
             if user['role'] == 'admin':
                 return redirect(url_for('admin_dashboard'))
             else:
                 return redirect(url_for('home'))
 
-        flash('Invalid credentials. Please try again.', 'danger')
+        
+        cursor.execute("SELECT * FROM admins WHERE username=%s", (email_or_username,))
+        admin = cursor.fetchone()
+        if admin and check_password_hash(admin['password'], password):
+            session['user_id'] = admin['id']
+            session['username'] = admin['username']
+            session['role'] = 'admin'
+            return redirect(url_for('admin_dashboard'))
+
+        # If neither matched
+        flash("Invalid credentials. Please try again.", "danger")
 
     return render_template('login.html')
 
@@ -177,55 +205,45 @@ def order_pizza(pizza_id):
 
     return render_template('customization.html', pizza=pizza)
 
-#order the pizza
+#place the pizza 
 @app.route('/place-order', methods=['GET', 'POST'])
 def place_order():
     if 'user_id' not in session:
-        flash("Please login first", "danger")
+        flash("Login first", "danger")
         return redirect(url_for('login'))
 
-    user_id = session['user_id']
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-
-    # Get cart items
     cursor.execute("""
-        SELECT c.*, p.name, p.price
+        SELECT c.*, p.name, (c.unit_price * c.quantity) AS subtotal
         FROM cart c
         JOIN pizzas p ON c.pizza_id = p.id
         WHERE c.user_id = %s
-    """, (user_id,))
+    """, (session['user_id'],))
     cart_items = cursor.fetchall()
 
     if not cart_items:
-        flash("Your cart is empty!", "warning")
+        flash("No items in cart to place order.", "warning")
         return redirect(url_for('view_cart'))
 
-    # Calculate subtotal for each item and total for cart
-    for item in cart_items:
-        item['subtotal'] = float(item['unit_price']) * int(item['quantity'])
-    total_price = sum(item['subtotal'] for item in cart_items)
+    total_price = sum(item['subtotal'] for item in cart_items)  # ✅ use subtotal
 
     if request.method == 'POST':
+        contact_number = request.form.get('contact_number')
         address = request.form.get('address')
         payment_method = request.form.get('payment_method')
 
-        if not address:
-            flash("Please enter a delivery address.", "warning")
+        if not address or not payment_method or not contact_number:
+            flash("Please enter contact number, address and payment method.", "warning")
             return redirect(url_for('place_order'))
 
-        if not payment_method:
-            flash("Please select a payment method.", "warning")
-            return redirect(url_for('place_order'))
-
-        # Move cart items to orders with payment info
         for item in cart_items:
             cursor.execute("""
                 INSERT INTO orders (
                     user_id, pizza_id, size, crust, cheese, toppings, extras,
-                    quantity, total_price, address, status, payment_method, payment_status
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    quantity, total_price, contact_number, address, status, payment_method, payment_status
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
-                user_id,
+                session['user_id'],
                 item['pizza_id'],
                 item['size'],
                 item['crust'],
@@ -233,21 +251,84 @@ def place_order():
                 item['toppings'],
                 item['extras'],
                 item['quantity'],
-                item['subtotal'],
+                item['subtotal'],  # ✅ use subtotal
+                contact_number,
                 address,
                 'pending',
                 payment_method,
-                'paid' if payment_method != 'cod' else 'unpaid'  # COD stays unpaid
+                'paid' if payment_method != 'cod' else 'unpaid'
             ))
 
-        # Clear cart after placing order
-        cursor.execute("DELETE FROM cart WHERE user_id = %s", (user_id,))
+        # Clear cart
+        cursor.execute("DELETE FROM cart WHERE user_id = %s", (session['user_id'],))
         mysql.connection.commit()
 
-        flash(f"Order placed successfully! Payment method: {payment_method}", "success")
+        flash("Order placed successfully! 🎉", "success")
         return redirect(url_for('orders'))
 
     return render_template('order.html', cart_items=cart_items, total_price=total_price)
+
+@app.route('/place-order/<int:cart_id>', methods=['GET', 'POST'])
+def place_single_order(cart_id):
+    if 'user_id' not in session:
+        flash("Login first", "danger")
+        return redirect(url_for('login'))
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    # Fetch only the selected cart item with pizza name
+    cursor.execute("""
+        SELECT c.*, p.name, (c.unit_price * c.quantity) AS subtotal
+        FROM cart c
+        JOIN pizzas p ON c.pizza_id = p.id
+        WHERE c.id = %s AND c.user_id = %s
+    """, (cart_id, session['user_id']))
+    item = cursor.fetchone()
+
+    if not item:
+        flash("Cart item not found.", "warning")
+        return redirect(url_for('view_cart'))
+
+    if request.method == 'POST':
+        contact_number = request.form.get('contact_number')
+        address = request.form.get('address')
+        payment_method = request.form.get('payment_method')
+
+        if not contact_number or not address or not payment_method:
+            flash("Please fill contact number, address and payment method.", "warning")
+            return redirect(url_for('place_single_order', cart_id=cart_id))
+
+        # Insert into orders table
+        cursor.execute("""
+            INSERT INTO orders (
+                user_id, pizza_id, size, crust, cheese, toppings, extras,
+                quantity, total_price, contact_number, address, status, payment_method, payment_status
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """, (
+            session['user_id'],
+            item['pizza_id'],
+            item['size'],
+            item['crust'],
+            item['cheese'],
+            item['toppings'],
+            item['extras'],
+            item['quantity'],
+            item['subtotal'],
+            contact_number,
+            address,
+            'pending',
+            payment_method,
+            'paid' if payment_method != 'cod' else 'unpaid'
+        ))
+
+        # Delete only this cart item
+        cursor.execute("DELETE FROM cart WHERE id = %s", (cart_id,))
+        mysql.connection.commit()
+
+        flash("Pizza ordered successfully! 🎉", "success")
+        return redirect(url_for('orders'))
+
+    # GET request → show order page
+    return render_template('order.html', cart_items=[item], total_price=item['subtotal'])
 
 @app.route('/orders')
 def orders():
@@ -350,18 +431,18 @@ def admin_dashboard():
     if search_query:
         like_pattern = f"%{search_query}%"
         query = '''
-            SELECT o.id, u.username, o.address, p.name, o.size, o.quantity,
+            SELECT o.id, u.username, o.contact_number, o.address, p.name, o.size, o.quantity,
                    o.total_price, o.status, o.payment_status, o.created_at
             FROM orders o
             JOIN users u ON o.user_id = u.id
             JOIN pizzas p ON o.pizza_id = p.id
-            WHERE u.username LIKE %s OR o.address LIKE %s OR p.name LIKE %s OR o.id LIKE %s
+            WHERE u.username LIKE %s OR o.contact_number LIKE %s OR o.address LIKE %s OR p.name LIKE %s OR o.id LIKE %s
             ORDER BY o.created_at DESC
         '''
-        cursor.execute(query, (like_pattern, like_pattern, like_pattern, like_pattern))
+        cursor.execute(query, (like_pattern, like_pattern, like_pattern, like_pattern, like_pattern))
     else:
         query = '''
-            SELECT o.id, u.username, o.address, p.name, o.size, o.quantity,
+            SELECT o.id, u.username, o.contact_number, o.address, p.name, o.size, o.quantity,
                    o.total_price, o.status, o.payment_status, o.created_at
             FROM orders o
             JOIN users u ON o.user_id = u.id
@@ -455,31 +536,32 @@ def add_to_cart(pizza_id):
 
 @app.route('/cart')
 def view_cart():
+
     if 'user_id' not in session:
         flash("Login to view your cart", "warning")
         return redirect(url_for('login'))
 
     user_id = session['user_id']
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-
     cursor.execute("""
-        SELECT 
-            c.id AS cart_id,
-            p.id AS pizza_id,
-            p.name,
-            c.size,
-            c.crust,
-            c.cheese,
-            c.toppings,
-            c.extras,
-            c.quantity,
-            c.unit_price,
-            (c.unit_price * c.quantity) AS subtotal
-        FROM cart c
-        JOIN pizzas p ON c.pizza_id = p.id
-        WHERE c.user_id = %s
-    """, (user_id,))
-    
+    SELECT 
+        c.id AS cart_id,
+        p.id AS pizza_id,
+        p.name,
+        p.price AS base_price,
+        c.size,
+        c.crust,
+        c.cheese,
+        c.toppings,
+        c.extras,
+        c.quantity,
+        c.unit_price,
+        (c.unit_price * c.quantity) AS subtotal
+    FROM cart c
+    JOIN pizzas p ON c.pizza_id = p.id
+    WHERE c.user_id = %s
+""", (user_id,))
+
     cart_items = cursor.fetchall()
     total = sum([item['subtotal'] for item in cart_items]) if cart_items else 0
 
@@ -493,48 +575,65 @@ def remove_from_cart(cart_id):
     flash("Item removed from cart", "info")
     return redirect(url_for('view_cart'))
 
+@app.route('/checkout-single/<int:cart_id>', methods=['POST'])
+def checkout_single(cart_id):
+    if 'user_id' not in session:
+        flash("Login first", "danger")
+        return redirect(url_for('login'))
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT * FROM cart WHERE id = %s AND user_id = %s", (cart_id, session['user_id']))
+    item = cursor.fetchone()
+
+    if not item:
+        flash("Cart item not found", "warning")
+        return redirect(url_for('view_cart'))
+
+    # Check spin usage
+    user_id = session['user_id']
+    today = date.today()
+    cursor.execute("""SELECT COUNT(*) FROM spin_rewards WHERE user_id = %s AND DATE(created_at) = %s""",
+                   (user_id, today))
+    count = cursor.fetchone()['COUNT(*)']
+
+    # redirect to spin first if not spun today, else go to order page
+    if count >= 1:
+        return redirect(url_for('place_single_order', cart_id=cart_id))
+    else:
+        # pass the cart_id so spin can redirect back to single order
+        return redirect(url_for('spin_wheel', next='single', cart_id=cart_id))
+
 @app.route('/checkout-cart', methods=['POST'])
 def checkout_cart():
     if 'user_id' not in session:
         flash("Login first", "danger")
         return redirect(url_for('login'))
 
-    user_id = session['user_id']
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-
-    cursor.execute("SELECT * FROM cart WHERE user_id = %s", (user_id,))
+    cursor.execute("SELECT * FROM cart WHERE user_id = %s", (session['user_id'],))
     items = cursor.fetchall()
 
     if not items:
         flash("Your cart is empty!", "warning")
         return redirect(url_for('view_cart'))
 
-    for item in items:
-        cursor.execute("""
-            INSERT INTO orders (
-                user_id, pizza_id, size, crust, cheese, toppings, extras, quantity, total_price, status
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (
-            user_id,
-            item['pizza_id'],
-            item['size'],
-            item['crust'],
-            item['cheese'],
-            item['toppings'],
-            item['extras'],
-            item['quantity'],
-            item['unit_price'] * item['quantity'],
-            'pending'
-        ))
+    # Check spin usage
+    user_id = session['user_id']
+    today = date.today()
+    cursor.execute("""
+        SELECT COUNT(*) FROM spin_rewards 
+        WHERE user_id = %s AND DATE(created_at) = %s
+    """, (user_id, today))
+    count = cursor.fetchone()['COUNT(*)']
 
-    # Clear cart after checkout
-    cursor.execute("DELETE FROM cart WHERE user_id = %s", (user_id,))
-    mysql.connection.commit()
+    if count >= 1:
+        # already spun today → skip spin
+        return redirect(url_for('place_order'))
+    else:
+        # allow spin before placing order
+        return redirect(url_for('spin_wheel'))
 
-    flash("Order placed successfully from cart!", "success")
-    return redirect(url_for('payment'))
-
-@app.route('/spin')
+@app.route('/spin', methods=['GET', 'POST'])
 def spin_wheel():
     if 'user_id' not in session:
         flash("Login to spin the wheel!", "danger")
@@ -542,21 +641,24 @@ def spin_wheel():
 
     user_id = session['user_id']
     today = date.today()
-
     cursor = mysql.connection.cursor()
-    cursor.execute("""
-        SELECT COUNT(*) FROM spin_rewards
-        WHERE user_id = %s AND DATE(created_at) = %s
-    """, (user_id, today))
+    cursor.execute("""SELECT COUNT(*) FROM spin_rewards WHERE user_id = %s AND DATE(created_at) = %s""",
+                   (user_id, today))
     count = cursor.fetchone()[0]
 
-    if count >= 1:
-        # User has already spun for today
-        return render_template('spin.html', message="You have already spun today! Try again tomorrow.")
-    
-    # If user hasn't spun yet, show the wheel
-    return render_template('spin.html', message=None)
+    message = "You have already spun today! Continue to payment." if count >= 1 else None
 
+    # get optional query parameters for redirect
+    next_action = request.args.get('next')
+    cart_id = request.args.get('cart_id')
+
+    # decide where to go after spin
+    if next_action == 'single' and cart_id:
+        redirect_after_spin = url_for('place_single_order', cart_id=cart_id)
+    else:
+        redirect_after_spin = url_for('place_order')
+
+    return render_template('spin.html', message=message, redirect_after_spin=redirect_after_spin)
 
 @app.route('/get-spin-reward')
 def get_spin_reward():
@@ -576,7 +678,7 @@ def get_spin_reward():
     if count >= 1:
         return jsonify({'reward': 'Already Spun Today'})
 
-    reward = random.choice(['Free Pizza', '50% Off', 'Extra Cheese', 'No Reward', 'Buy 1 Get 1'])
+    reward = random.choice(['Free Delivery', '10% Off', 'Extra Cheese', 'No Reward', 'Buy 1 Get 1'])
     cursor.execute("INSERT INTO spin_rewards (user_id, reward) VALUES (%s, %s)", (user_id, reward))
     mysql.connection.commit()
 

@@ -18,7 +18,18 @@
 
     <div class="card shadow p-4 mb-4">
       <div class="form-group mb-3">
-        <label>Delivery Address:</label>
+        <label><b>Contact Number:</b></label>
+        <input
+          type="tel"
+          name="contact_number"
+          class="form-control"
+          placeholder="Enter your contact number"
+          pattern="[0-9]{10}"
+          required
+        />
+      </div>
+      <div class="form-group mb-3">
+        <label><b>Delivery Address:</b></label>
         <textarea
           name="address"
           class="form-control"
@@ -29,7 +40,7 @@
       </div>
 
       <div class="form-group mb-3">
-        <label for="payment_method">Select Payment Option:</label>
+        <label for="payment_method"><b>Select Payment Option:</b></label>
         <select name="payment_method" class="form-control" required>
           <option value="esewa">eSewa 💚</option>
           <option value="khalti">Khalti 💜</option>

@@ -13,7 +13,7 @@
         <th>Toppings</th>
         <th>Extras</th>
         <th>Quantity</th>
-        <th>Price</th>
+        <th>Actual Price</th>
         <th>Subtotal</th>
         <th>Action</th>
       </tr>
@@ -28,14 +28,27 @@
         <td>{{ item.toppings if item.toppings else '-' }}</td>
         <td>{{ item.extras if item.extras else '-' }}</td>
         <td>{{ item.quantity }}</td>
-        <td>Rs. {{ item.unit_price }}</td>
+        <td>Rs. {{ item.base_price }}</td>
         <td>Rs. {{ item.subtotal }}</td>
         <td>
+          <!-- Remove Button -->
           <form
             action="{{ url_for('remove_from_cart', cart_id=item.cart_id) }}"
             method="POST"
+            style="display: inline-block"
           >
             <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+          </form>
+
+          <!-- Order This Button → goes through spin first -->
+          <form
+            action="{{ url_for('checkout_single', cart_id=item.cart_id) }}"
+            method="POST"
+            style="display: inline-block"
+          >
+            <button type="submit" class="btn btn-primary btn-sm">
+              Order This
+            </button>
           </form>
         </td>
       </tr>
@@ -43,12 +56,15 @@
     </tbody>
   </table>
 
-  <div class="text-end">
+  <div class="text-end mt-3">
     <h4>Total: Rs. {{ total }}</h4>
-    <form action="{{ url_for('place_order') }}" method="POST">
-      <button type="submit" class="btn btn-success w-100">Place Order</button>
+
+    <!-- Order All Button → goes through spin first -->
+    <form action="{{ url_for('checkout_cart') }}" method="POST" class="mb-2">
+      <button type="submit" class="btn btn-primary btn-sm">Order All</button>
     </form>
   </div>
+
   {% else %}
   <p class="text-center">Your cart is empty.</p>
   {% endif %}
