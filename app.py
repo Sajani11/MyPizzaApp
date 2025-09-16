@@ -50,112 +50,131 @@ def home():
 
 @app.route('/register', methods=['GET','POST'])
 def register():
-    if request.method == 'POST':  # Only process POST requests
+    if request.method == 'POST':
         name = request.form['username']
         email = request.form['email']
         password = generate_password_hash(request.form['password'])
 
         cursor = mysql.connection.cursor()
 
-        # Generic check: see if email exists in users OR admins
+        # Check if email already exists in users
         cursor.execute("SELECT id FROM users WHERE email=%s", (email,))
-        user_exists = cursor.fetchone()
-
-        cursor.execute("SELECT id FROM admins WHERE username=%s", (email,))
-        admin_exists = cursor.fetchone()
-
-        if user_exists or admin_exists:
-            flash("Registration failed. Please try again.", "danger")
+        if cursor.fetchone():
+            flash("Email already registered.", "danger")
             return redirect(url_for('register'))
 
-        # If not exists, insert new user
+        # Insert new customer (default role = 'customer')
         cursor.execute(
-            "INSERT INTO users (username, email, password) VALUES (%s, %s, %s)",
-            (name, email, password),
+            "INSERT INTO users (username, email, password, role) VALUES (%s, %s, %s, 'customer')",
+            (name, email, password)
         )
         mysql.connection.commit()
         cursor.close()
 
-        flash("Registration successful! Would you like to login.", "success")
+        flash("Registration successful! Please login.", "success")
         return redirect(url_for("login"))
 
-    # GET request → show registration form
     return render_template('register.html')
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email_or_username = request.form['email']  # Users use email, admins can use their username or email
+        email_or_username = request.form['email']  # input can be email or username
         password = request.form['password']
 
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-      
-        cursor.execute("SELECT * FROM users WHERE email=%s", (email_or_username,))
+        # Login using the users table only
+        cursor.execute(
+            "SELECT * FROM users WHERE email=%s OR username=%s",
+            (email_or_username, email_or_username)
+        )
         user = cursor.fetchone()
+
         if user and check_password_hash(user['password'], password):
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['role'] = user['role']  # 'admin' or 'customer'
             if user['role'] == 'admin':
                 return redirect(url_for('admin_dashboard'))
-            else:
-                return redirect(url_for('home'))
+            return redirect(url_for('home'))
 
-        
-        cursor.execute("SELECT * FROM admins WHERE username=%s", (email_or_username,))
-        admin = cursor.fetchone()
-        if admin and check_password_hash(admin['password'], password):
-            session['user_id'] = admin['id']
-            session['username'] = admin['username']
-            session['role'] = 'admin'
-            return redirect(url_for('admin_dashboard'))
-
-        # If neither matched
         flash("Invalid credentials. Please try again.", "danger")
 
     return render_template('login.html')
 
+
+@app.route('/logout')
+def logout():
+    session.pop('user_id', None)
+    flash('You have been logged out. Visit again!','info')
+    return redirect(url_for('home'))
+
 @app.route('/add_pizza', methods=['GET', 'POST'])
 def add_pizza():
     if request.method == 'POST':
-        name = request.form['pizza_name']
-        description = request.form['description']
-        price = float(request.form['price'])
+        name = request.form['pizza_name'].strip()
+        description = request.form['description'].strip()
+        price = request.form['price'].strip()
         image_source = request.form['image_source']  # 'url' or 'upload'
 
+        if not name or not description or not price:
+            flash('Please fill all fields.', 'warning')
+            return redirect(url_for('add_pizza'))
+
+        try:
+            price = float(price)
+        except ValueError:
+            flash('Invalid price format.', 'danger')
+            return redirect(url_for('add_pizza'))
+
+        cursor = mysql.connection.cursor()
+
+        # Check if pizza with the same name already exists
+        cursor.execute("SELECT id FROM pizzas WHERE name=%s", (name,))
+        if cursor.fetchone():
+            flash(f'A pizza named "{name}" already exists!', 'danger')
+            return redirect(url_for('add_pizza'))
+
         image_url = ''
-        
         if image_source == 'url':
-            image_url = request.form['image_url']  # Image URL from input
+            image_url = request.form.get('image_url', '').strip()
         elif image_source == 'upload':
-           image_file = request.files.get('image_file')  
-           if image_file and allowed_file(image_file):
+            image_file = request.files.get('image_file')
+            if image_file and allowed_file(image_file):
                 filename = secure_filename(image_file.filename)
                 file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 image_file.save(file_path)
                 image_url = '/' + file_path.replace("\\", "/")
-           else:
+            else:
                 flash('Invalid image file. Please upload a valid .jpg or .jpeg file.', 'danger')
                 return redirect(url_for('add_pizza'))
 
-
-        cursor = mysql.connection.cursor()
         cursor.execute(
             'INSERT INTO pizzas (name, description, price, image_url) VALUES (%s, %s, %s, %s)',
             (name, description, price, image_url)
         )
         mysql.connection.commit()
+        cursor.close()
 
         flash('Pizza added successfully!', 'success')
         return redirect(url_for('add_pizza'))
 
     return render_template('add_pizza.html')
 
-@app.route('/logout')
-def logout():
-    session.pop('user_id', None)
-    flash('You have been logged out. Visit again!','info')
+@app.route('/delete-pizza/<int:pizza_id>', methods=['POST'])
+def delete_pizza(pizza_id):
+    if 'user_id' not in session or session.get('role') != 'admin':
+        flash("Admin access required.", "danger")
+        return redirect(url_for('login'))
+
+    cursor = mysql.connection.cursor()
+    # Delete pizza (also deletes from cart if foreign key ON DELETE CASCADE is set)
+    cursor.execute("DELETE FROM pizzas WHERE id = %s", (pizza_id,))
+    mysql.connection.commit()
+
+    flash("Pizza deleted successfully!", "success")
     return redirect(url_for('home'))
 
 @app.route('/choose-auth')

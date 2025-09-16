@@ -40,11 +40,12 @@
   {% endif %}
 </div>
 
+<!-- Pass the redirect URL to JS -->
 <script>
-  // Always safe, since Flask now passes redirect_after_spin every time
-  const redirectAfterSpin = "{{ redirect_after_spin }}";
+  window.redirectAfterSpin = "{{ redirect_after_spin }}";
 </script>
 
 {% if not message %}
+<!-- Only load spin.js if the user hasn’t spun yet -->
 <script src="{{ url_for('static', filename='spin.js') }}"></script>
 {% endif %} {% endblock %}

@@ -76,14 +76,6 @@
                 <i class="fas fa-gift"></i> My Rewards
               </a>
             </li>
-            <li class="nav-item">
-              <a
-                class="nav-link {% if request.endpoint == 'spin_wheel' %}active{% endif %}"
-                href="{{ url_for('spin_wheel') }}"
-              >
-                <i class="fas fa-dice"></i> Spin
-              </a>
-            </li>
 
             {% elif session.get('role') == 'admin' %}
             <!-- Admin-specific nav -->
