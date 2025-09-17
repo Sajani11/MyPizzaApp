@@ -56,8 +56,8 @@ CREATE TABLE IF NOT EXISTS cart (
     cheese VARCHAR(50) DEFAULT 'normal',
     toppings_hash VARCHAR(32) GENERATED ALWAYS AS (MD5(IFNULL(toppings,''))) STORED,
     extras_hash VARCHAR(32) GENERATED ALWAYS AS (MD5(IFNULL(extras,''))) STORED,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (pizza_id) REFERENCES pizzas(id)
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (pizza_id) REFERENCES pizzas(id) ON DELETE CASCADE
 );
 
 

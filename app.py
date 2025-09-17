@@ -177,6 +177,24 @@ def delete_pizza(pizza_id):
     flash("Pizza deleted successfully!", "success")
     return redirect(url_for('home'))
 
+@app.route('/edit-pizza/<int:pizza_id>', methods=['POST'])
+def edit_pizza(pizza_id):
+    if 'user_id' not in session or session.get('role') != 'admin':
+        flash("Admin access required.", "danger")
+        return redirect(url_for('login'))
+
+    name = request.form['name']
+    price = request.form['price']
+
+    cursor = mysql.connection.cursor()
+    cursor.execute(
+        "UPDATE pizzas SET name=%s, price=%s WHERE id=%s",
+        (name, price, pizza_id)
+    )
+    mysql.connection.commit()
+    flash("Pizza updated successfully!", "success")
+    return redirect(url_for('home'))
+
 @app.route('/choose-auth')
 def choose_auth():
     return render_template('choose_auth.html')
@@ -490,9 +508,6 @@ def auto_update_order_status():
                 cursor.execute("UPDATE orders SET status = 'delivered' WHERE id = %s", (order_id,))
 
         mysql.connection.commit()
-
-#schedule it to run every 17 minutes
-scheduler.add_job(id='AutoStatusUpdate', func=auto_update_order_status, trigger='interval', minutes=17)
 
 @app.route('/update_order_status/<int:order_id>', methods=['POST'])
 def update_status(order_id):
