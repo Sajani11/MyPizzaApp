@@ -106,41 +106,5 @@
     </div>
   </form>
 </div>
-<script>
-  function toggleImageInput(source) {
-    const urlDiv = document.getElementById("urlInputDiv");
-    const fileDiv = document.getElementById("uploadInputDiv");
 
-    if (source === "url") {
-      urlDiv.style.display = "block";
-      fileDiv.style.display = "none";
-    } else {
-      urlDiv.style.display = "none";
-      fileDiv.style.display = "block";
-    }
-  }
-
-  // Optional: live preview for URL
-  document.getElementById("image_url").addEventListener("input", function () {
-    const preview = document.getElementById("imagePreview");
-    preview.src = this.value;
-    preview.style.display = this.value ? "block" : "none";
-  });
-  document
-    .getElementById("image_file")
-    .addEventListener("change", function (e) {
-      const preview = document.getElementById("imagePreview");
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function (event) {
-          preview.src = event.target.result;
-          preview.style.display = "block";
-        };
-        reader.readAsDataURL(file);
-      } else {
-        preview.style.display = "none";
-      }
-    });
-</script>
 {% endblock %}

@@ -8,7 +8,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (form && imageInput && imagePreview) {
       imageInput.addEventListener("input", () => {
         const inputValue = imageInput.value;
-        const isUrl = inputValue.match(/^https?:\/\/.*\.(jpg|jpeg|png|gif|bmp)$/i);
+        const isUrl = inputValue.match(
+          /^https?:\/\/.*\.(jpg|jpeg|png|gif|bmp)$/i
+        );
         if (isUrl) {
           imagePreview.src = inputValue;
           imagePreview.style.display = "block";
@@ -23,7 +25,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const price = form.querySelector('input[name="price"]');
         const description = form.querySelector('textarea[name="description"]');
 
-        if (!name.value || !price.value || !description.value || !imageInput.value) {
+        if (
+          !name.value ||
+          !price.value ||
+          !description.value ||
+          !imageInput.value
+        ) {
           alert("Please fill out all fields.");
           return;
         }
@@ -50,7 +57,9 @@ document.addEventListener("DOMContentLoaded", () => {
           });
       });
     } else {
-      console.error("One or more elements (form, imageInput, imagePreview) are missing.");
+      console.error(
+        "One or more elements (form, imageInput, imagePreview) are missing."
+      );
     }
   }
 
@@ -68,7 +77,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const name = item.getAttribute("data-name");
         if (name.includes(keyword)) {
           item.style.display = "block";
-          gsap.to(item, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" });
+          gsap.to(item, {
+            opacity: 1,
+            y: 0,
+            duration: 0.4,
+            ease: "power2.out",
+          });
           matchFound = true;
         } else {
           gsap.to(item, {
@@ -76,7 +90,9 @@ document.addEventListener("DOMContentLoaded", () => {
             y: -20,
             duration: 0.3,
             ease: "power2.in",
-            onComplete: () => { item.style.display = "none"; }
+            onComplete: () => {
+              item.style.display = "none";
+            },
           });
         }
       });
@@ -84,20 +100,40 @@ document.addEventListener("DOMContentLoaded", () => {
       noResultMsg.style.display = matchFound ? "none" : "block";
     });
 
-    gsap.from(".pizza-item", { opacity: 0, y: 50, duration: 0.6, ease: "back.out(1.7)", stagger: 0.1 });
+    gsap.from(".pizza-item", {
+      opacity: 0,
+      y: 50,
+      duration: 0.6,
+      ease: "back.out(1.7)",
+      stagger: 0.1,
+    });
 
     document.querySelectorAll(".pizza-img").forEach((img) => {
       img.addEventListener("mouseenter", () => {
-        gsap.to(img, { boxShadow: "0 0 20px 5px rgba(255, 193, 7, 0.8)", scale: 1.05, duration: 0.3 });
+        gsap.to(img, {
+          boxShadow: "0 0 20px 5px rgba(255, 193, 7, 0.8)",
+          scale: 1.05,
+          duration: 0.3,
+        });
       });
       img.addEventListener("mouseleave", () => {
-        gsap.to(img, { boxShadow: "0 0 15px rgba(0, 0, 0, 0.2)", scale: 1, duration: 0.3 });
+        gsap.to(img, {
+          boxShadow: "0 0 15px rgba(0, 0, 0, 0.2)",
+          scale: 1,
+          duration: 0.3,
+        });
       });
     });
   }
 
   // ---------------- Spin Wheel Functionality ----------------
-  const rewards = ["Free Delivery", "10% Off", "Extra Cheese", "No Reward", "Buy 1 Get 1"];
+  const rewards = [
+    "Free Delivery",
+    "10% Off",
+    "Extra Cheese",
+    "No Reward",
+    "Buy 1 Get 1",
+  ];
   const angles = [36, 108, 180, 252, 324];
 
   const wheel = document.getElementById("wheel");
@@ -105,7 +141,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const resultDiv = document.getElementById("result");
 
   // Use the Flask variable safely passed in template
-  const redirectAfterSpin = typeof window.redirectAfterSpin !== "undefined" ? window.redirectAfterSpin : "/";
+  const redirectAfterSpin =
+    typeof window.redirectAfterSpin !== "undefined"
+      ? window.redirectAfterSpin
+      : "/";
 
   if (wheel && spinBtn && resultDiv) {
     let currentAngle = 0;
@@ -143,7 +182,9 @@ document.addEventListener("DOMContentLoaded", () => {
             resultDiv.innerText = `🎉 You won: ${reward} 🎉`;
 
             // Redirect after 2 seconds using the JS variable
-            setTimeout(() => { window.location.href = redirectAfterSpin; }, 2000);
+            setTimeout(() => {
+              window.location.href = redirectAfterSpin;
+            }, 2000);
 
             wheel.removeEventListener("transitionend", onTransitionEnd);
           }
@@ -155,5 +196,127 @@ document.addEventListener("DOMContentLoaded", () => {
           spinBtn.disabled = false;
         });
     });
+  }
+});
+
+//home page script
+// GSAP Animations
+gsap.from(".gsap-heading", { opacity: 0, y: -50, duration: 1 });
+gsap.from(".gsap-add", { opacity: 0, y: 50, duration: 1, delay: 0.3 });
+gsap.from(".pizza-item", {
+  opacity: 0,
+  scale: 0.8,
+  duration: 0.6,
+  stagger: 0.1,
+  delay: 0.6,
+});
+
+// Function to filter pizzas based on the search input
+function filterPizzas() {
+  const input = document.getElementById("searchInput").value.toLowerCase();
+  const items = document.querySelectorAll(".pizza-item");
+  let found = false;
+
+  items.forEach((item) => {
+    const name = item.getAttribute("data-name");
+    if (name.includes(input)) {
+      item.style.display = "block";
+      gsap.fromTo(
+        item,
+        { opacity: 0, scale: 0.8 },
+        { opacity: 1, scale: 1, duration: 0.4 }
+      );
+      found = true;
+    } else {
+      item.style.display = "none";
+    }
+  });
+
+  document.getElementById("noResultMsg").style.display = found
+    ? "none"
+    : "block";
+}
+
+let selectedPizzaId = null;
+
+function showOrderModal(pizzaId) {
+  selectedPizzaId = pizzaId;
+
+  // Set the form action to the add-to-cart route with the current pizzaId
+  const form = document.getElementById("addToCartForm");
+  form.action = `/add-to-cart/${pizzaId}`;
+
+  // Show the modal
+  const modal = new bootstrap.Modal(
+    document.getElementById("orderChoiceModal")
+  );
+  modal.show();
+}
+
+// Redirect customize button to customize page
+document.addEventListener("DOMContentLoaded", function () {
+  document
+    .getElementById("customizeBtn")
+    .addEventListener("click", function () {
+      window.location.href = `/customize/${selectedPizzaId}`;
+    });
+});
+
+// ------------------------
+// Admin: Edit & Delete Modals
+// ------------------------
+function showEditPizzaModal(pizzaId, pizzaName, pizzaPrice, pizzaDesc) {
+  document.getElementById("editPizzaId").value = pizzaId;
+  document.getElementById("editPizzaName").value = pizzaName;
+  document.getElementById("editPizzaPrice").value = pizzaPrice;
+  document.getElementById("editPizzaDesc").value = pizzaDesc;
+  document.getElementById("editPizzaForm").action = `/edit-pizza/${pizzaId}`;
+  new bootstrap.Modal(document.getElementById("editPizzaModal")).show();
+}
+function showDeletePizzaModal(pizzaId, pizzaName) {
+  document.getElementById("pizzaIdToDelete").value = pizzaId;
+  document.getElementById("pizzaNameToDelete").innerText = pizzaName;
+
+  // Set form action to match Flask route
+  document.getElementById(
+    "deletePizzaForm"
+  ).action = `/delete-pizza/${pizzaId}`;
+
+  new bootstrap.Modal(document.getElementById("deletePizzaModal")).show();
+}
+
+//add-pizza script
+
+function toggleImageInput(source) {
+  const urlDiv = document.getElementById("urlInputDiv");
+  const fileDiv = document.getElementById("uploadInputDiv");
+
+  if (source === "url") {
+    urlDiv.style.display = "block";
+    fileDiv.style.display = "none";
+  } else {
+    urlDiv.style.display = "none";
+    fileDiv.style.display = "block";
+  }
+}
+
+// Optional: live preview for URL
+document.getElementById("image_url").addEventListener("input", function () {
+  const preview = document.getElementById("imagePreview");
+  preview.src = this.value;
+  preview.style.display = this.value ? "block" : "none";
+});
+document.getElementById("image_file").addEventListener("change", function (e) {
+  const preview = document.getElementById("imagePreview");
+  const file = e.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function (event) {
+      preview.src = event.target.result;
+      preview.style.display = "block";
+    };
+    reader.readAsDataURL(file);
+  } else {
+    preview.style.display = "none";
   }
 });
