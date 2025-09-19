@@ -149,6 +149,23 @@ document.addEventListener("DOMContentLoaded", () => {
     new bootstrap.Modal(document.getElementById("deletePizzaModal")).show();
   };
 
+  // Show the order modal for a specific pizza
+  window.showOrderModal = function (pizzaId) {
+    const addToCartForm = document.getElementById("addToCartForm");
+    const customizeBtn = document.getElementById("customizeBtn");
+
+    // Set the form action dynamically for regular pizza
+    addToCartForm.action = `/add-to-cart/${pizzaId}`;
+
+    // Customize button redirects to the customization page
+    customizeBtn.onclick = function () {
+      window.location.href = `/customize/${pizzaId}`;
+    };
+
+    // Show the modal
+    new bootstrap.Modal(document.getElementById("orderChoiceModal")).show();
+  };
+
   // ---------------- Spin Wheel Functionality ----------------
   const rewards = [
     "Free Delivery",
