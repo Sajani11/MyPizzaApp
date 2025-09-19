@@ -166,9 +166,7 @@ def add_pizza():
 
 @app.route('/delete-pizza/<int:pizza_id>', methods=['POST'])
 def delete_pizza(pizza_id):
-    if 'user_id' not in session or session.get('role') != 'admin':
-        flash("Admin access required.", "danger")
-        return redirect(url_for('login'))
+   
 
     cursor = mysql.connection.cursor()
     # Delete pizza (also deletes from cart if foreign key ON DELETE CASCADE is set)
@@ -188,7 +186,7 @@ def edit_pizza(pizza_id):
     cursor = mysql.connection.cursor()
     cursor.execute(
         "UPDATE pizzas SET name=%s, price=%s, description=%s WHERE id=%s",
-        (name, price, pizza_id,description)
+        (name, price,description,pizza_id)
     )
     mysql.connection.commit()
     flash("Pizza updated successfully!", "success")
