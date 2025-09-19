@@ -180,17 +180,15 @@ def delete_pizza(pizza_id):
 
 @app.route('/edit-pizza/<int:pizza_id>', methods=['POST'])
 def edit_pizza(pizza_id):
-    if 'user_id' not in session or session.get('role') != 'admin':
-        flash("Admin access required.", "danger")
-        return redirect(url_for('login'))
-
+    
     name = request.form['name']
     price = request.form['price']
+    description =request.form['description']
 
     cursor = mysql.connection.cursor()
     cursor.execute(
-        "UPDATE pizzas SET name=%s, price=%s WHERE id=%s",
-        (name, price, pizza_id)
+        "UPDATE pizzas SET name=%s, price=%s, description=%s WHERE id=%s",
+        (name, price, pizza_id,description)
     )
     mysql.connection.commit()
     flash("Pizza updated successfully!", "success")

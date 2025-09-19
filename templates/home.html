@@ -40,7 +40,7 @@
           <p class="card-text">{{ pizza[2] }}</p>
           <p class="text-success">Rs. {{ pizza[3] }}</p>
 
-          {% if session.get('role') == 'Admin' %}
+          {% if session.get('role') == 'admin' %}
           <div class="admin-controls mt-2">
             <button
               class="btn btn-warning w-100 mb-2"
@@ -204,7 +204,5 @@
     </div>
   </div>
 </div>
-
-
 
 {% endblock %}
