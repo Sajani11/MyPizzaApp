@@ -191,6 +191,55 @@ def edit_pizza(pizza_id):
     flash("Pizza updated successfully!", "success")
     return redirect(url_for('home'))
 
+@app.route('/admin/reports')
+def admin_reports():
+    if 'user_id' not in session or session.get('role') != 'admin':
+        flash("Admin access required.", "danger")
+        return redirect(url_for('login'))
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    # Revenue by date
+    cursor.execute("""
+        SELECT DATE(created_at) as order_date, 
+               SUM(total_price) as revenue
+        FROM orders
+        WHERE payment_status = 'paid'
+        GROUP BY DATE(created_at)
+        ORDER BY order_date DESC
+        LIMIT 10
+    """)
+    sales_by_date = cursor.fetchall()
+
+    # Orders by status
+    cursor.execute("""
+        SELECT status, COUNT(*) as count
+        FROM orders
+        GROUP BY status
+    """)
+    sales_by_status = cursor.fetchall()
+
+    # Top pizzas (by quantity sold)
+    cursor.execute("""
+        SELECT p.name, SUM(o.quantity) as total_sold
+        FROM orders o
+        JOIN pizzas p ON o.pizza_id = p.id
+        WHERE o.status != 'cancelled'
+        GROUP BY p.id
+        ORDER BY total_sold DESC
+        LIMIT 5
+    """)
+    top_pizzas = cursor.fetchall()
+
+    cursor.close()
+
+    return render_template(
+        'admin_reports.html',
+        sales_by_date=sales_by_date,
+        sales_by_status=sales_by_status,
+        top_pizzas=top_pizzas
+    )
+
 @app.route('/choose-auth')
 def choose_auth():
     return render_template('choose_auth.html')

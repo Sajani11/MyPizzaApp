@@ -1,171 +1,167 @@
 document.addEventListener("DOMContentLoaded", () => {
   // ---------------- Add Pizza Page Functionality ----------------
-  if (document.body.classList.contains("add-pizza-page")) {
-    const form = document.getElementById("addPizzaForm");
-    const imageInput = document.getElementById("image_url");
-    const imagePreview = document.getElementById("imagePreview");
+  const addPizzaForm = document.getElementById("addPizzaForm");
+  const imageUrlInput = document.getElementById("image_url");
+  const imageFileInput = document.getElementById("image_file");
+  const imagePreview = document.getElementById("imagePreview");
 
-    if (form && imageInput && imagePreview) {
-      imageInput.addEventListener("input", () => {
-        const inputValue = imageInput.value;
-        const isUrl = inputValue.match(
+  if (addPizzaForm) {
+    const previewImage = (src) => {
+      imagePreview.src = src;
+      imagePreview.style.display = src ? "block" : "none";
+    };
+
+    // Image URL input
+    if (imageUrlInput) {
+      imageUrlInput.addEventListener("input", () => {
+        const isValidUrl = imageUrlInput.value.match(
           /^https?:\/\/.*\.(jpg|jpeg|png|gif|bmp)$/i
         );
-        if (isUrl) {
-          imagePreview.src = inputValue;
-          imagePreview.style.display = "block";
-        } else {
-          imagePreview.style.display = "none";
-        }
+        previewImage(isValidUrl ? imageUrlInput.value : "");
       });
-
-      form.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const name = form.querySelector('input[name="pizza_name"]');
-        const price = form.querySelector('input[name="price"]');
-        const description = form.querySelector('textarea[name="description"]');
-
-        if (
-          !name.value ||
-          !price.value ||
-          !description.value ||
-          !imageInput.value
-        ) {
-          alert("Please fill out all fields.");
-          return;
-        }
-
-        const formData = new FormData(form);
-        fetch("/add_pizza", {
-          method: "POST",
-          body: formData,
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.success) {
-              alert("Pizza added successfully!");
-              form.reset();
-              imagePreview.style.display = "none";
-              imageInput.value = "";
-            } else {
-              alert("Error adding pizza.");
-            }
-          })
-          .catch((error) => {
-            alert("Something went wrong. Please try again.");
-            console.error(error);
-          });
-      });
-    } else {
-      console.error(
-        "One or more elements (form, imageInput, imagePreview) are missing."
-      );
     }
+
+    // Image file input
+    if (imageFileInput) {
+      imageFileInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => previewImage(event.target.result);
+          reader.readAsDataURL(file);
+        } else {
+          previewImage("");
+        }
+      });
+    }
+
+    addPizzaForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = addPizzaForm
+        .querySelector('input[name="pizza_name"]')
+        .value.trim();
+      const price = addPizzaForm
+        .querySelector('input[name="price"]')
+        .value.trim();
+      const desc = addPizzaForm
+        .querySelector('textarea[name="description"]')
+        .value.trim();
+
+      if (
+        !name ||
+        !price ||
+        !desc ||
+        (!imageUrlInput.value && !imageFileInput.value)
+      ) {
+        return alert("Please fill out all fields.");
+      }
+
+      fetch("/add_pizza", { method: "POST", body: new FormData(addPizzaForm) })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            alert("Pizza added successfully!");
+            addPizzaForm.reset();
+            previewImage("");
+          } else {
+            alert("Error adding pizza.");
+          }
+        })
+        .catch(() => alert("Something went wrong. Please try again."));
+    });
   }
 
-  // ---------------- Search & Animation Functionality ----------------
-  const input = document.getElementById("searchInput");
+  // ---------------- Search & Filter Pizzas ----------------
+  const searchInput = document.getElementById("searchInput");
   const pizzaItems = document.querySelectorAll(".pizza-item");
   const noResultMsg = document.getElementById("noResultMsg");
 
-  if (input) {
-    input.addEventListener("keyup", () => {
-      const keyword = input.value.toLowerCase();
-      let matchFound = false;
-
-      pizzaItems.forEach((item) => {
-        const name = item.getAttribute("data-name");
-        const category = item.getAttribute("data-category");
-
-        if (name.includes(keyword) || category.includes(keyword)) {
-          item.style.display = "block";
-          gsap.to(item, {
-            opacity: 1,
-            y: 0,
-            duration: 0.4,
-            ease: "power2.out",
-          });
-          matchFound = true;
-        } else {
-          gsap.to(item, {
-            opacity: 0,
-            y: -20,
-            duration: 0.3,
-            ease: "power2.in",
-            onComplete: () => {
-              item.style.display = "none";
-            },
-          });
-        }
-      });
-
-      noResultMsg.style.display = matchFound ? "none" : "block";
-    });
-
-    gsap.from(".pizza-item", {
-      opacity: 0,
-      y: 50,
-      duration: 0.6,
-      ease: "back.out(1.7)",
-      stagger: 0.1,
-    });
-
-    document.querySelectorAll(".pizza-img").forEach((img) => {
-      img.addEventListener("mouseenter", () => {
-        gsap.to(img, {
-          boxShadow: "0 0 20px 5px rgba(255, 193, 7, 0.8)",
-          scale: 1.05,
+  const filterPizzas = () => {
+    const keyword = searchInput.value.toLowerCase();
+    let found = false;
+    pizzaItems.forEach((item) => {
+      const name = item.dataset.name.toLowerCase();
+      const category = item.dataset.category
+        ? item.dataset.category.toLowerCase()
+        : "";
+      if (name.includes(keyword) || category.includes(keyword)) {
+        item.style.display = "block";
+        gsap.to(item, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" });
+        found = true;
+      } else {
+        gsap.to(item, {
+          opacity: 0,
+          y: -20,
           duration: 0.3,
+          ease: "power2.in",
+          onComplete: () => (item.style.display = "none"),
         });
-      });
-      img.addEventListener("mouseleave", () => {
-        gsap.to(img, {
-          boxShadow: "0 0 15px rgba(0, 0, 0, 0.2)",
-          scale: 1,
-          duration: 0.3,
-        });
-      });
+      }
     });
-  }
+    if (noResultMsg) noResultMsg.style.display = found ? "none" : "block";
+  };
 
-  window.showEditPizzaModal = function (
-    pizzaId,
-    pizzaName,
-    pizzaPrice,
-    pizzaDesc
-  ) {
+  if (searchInput) searchInput.addEventListener("keyup", filterPizzas);
+
+  // Initial GSAP animations
+  gsap.from(".gsap-heading", { opacity: 0, y: -50, duration: 1 });
+  gsap.from(".gsap-add", { opacity: 0, y: 50, duration: 1, delay: 0.3 });
+  gsap.from(".pizza-item", {
+    opacity: 0,
+    scale: 0.8,
+    duration: 0.6,
+    stagger: 0.1,
+    delay: 0.6,
+  });
+
+  // Pizza hover effects
+  document.querySelectorAll(".pizza-img").forEach((img) => {
+    img.addEventListener("mouseenter", () =>
+      gsap.to(img, {
+        scale: 1.05,
+        boxShadow: "0 0 20px 5px rgba(255, 193, 7, 0.8)",
+        duration: 0.3,
+      })
+    );
+    img.addEventListener("mouseleave", () =>
+      gsap.to(img, {
+        scale: 1,
+        boxShadow: "0 0 15px rgba(0, 0, 0, 0.2)",
+        duration: 0.3,
+      })
+    );
+  });
+
+  // ---------------- Modals ----------------
+  let selectedPizzaId = null;
+
+  window.showOrderModal = (pizzaId) => {
+    selectedPizzaId = pizzaId;
+    const form = document.getElementById("addToCartForm");
+    if (form) form.action = `/add-to-cart/${pizzaId}`;
+    new bootstrap.Modal(document.getElementById("orderChoiceModal")).show();
+  };
+
+  document.getElementById("customizeBtn")?.addEventListener("click", () => {
+    if (selectedPizzaId) window.location.href = `/customize/${selectedPizzaId}`;
+  });
+
+  window.showEditPizzaModal = (pizzaId, name, price, desc) => {
     document.getElementById("editPizzaId").value = pizzaId;
-    document.getElementById("editPizzaName").value = pizzaName;
-    document.getElementById("editPizzaPrice").value = pizzaPrice;
-    document.getElementById("editPizzaDesc").value = pizzaDesc;
+    document.getElementById("editPizzaName").value = name;
+    document.getElementById("editPizzaPrice").value = price;
+    document.getElementById("editPizzaDesc").value = desc;
     document.getElementById("editPizzaForm").action = `/edit-pizza/${pizzaId}`;
     new bootstrap.Modal(document.getElementById("editPizzaModal")).show();
   };
 
-  window.showDeletePizzaModal = function (pizzaId, pizzaName) {
+  window.showDeletePizzaModal = (pizzaId, name) => {
     document.getElementById("pizzaIdToDelete").value = pizzaId;
-    document.getElementById("pizzaNameToDelete").innerText = pizzaName;
+    document.getElementById("pizzaNameToDelete").innerText = name;
     document.getElementById(
       "deletePizzaForm"
     ).action = `/delete-pizza/${pizzaId}`;
     new bootstrap.Modal(document.getElementById("deletePizzaModal")).show();
-  };
-
-  // Show the order modal for a specific pizza
-  window.showOrderModal = function (pizzaId) {
-    const addToCartForm = document.getElementById("addToCartForm");
-    const customizeBtn = document.getElementById("customizeBtn");
-
-    // Set the form action dynamically for regular pizza
-    addToCartForm.action = `/add-to-cart/${pizzaId}`;
-
-    // Customize button redirects to the customization page
-    customizeBtn.onclick = function () {
-      window.location.href = `/customize/${pizzaId}`;
-    };
-
-    // Show the modal
-    new bootstrap.Modal(document.getElementById("orderChoiceModal")).show();
   };
 
   // ---------------- Spin Wheel Functionality ----------------
@@ -177,12 +173,9 @@ document.addEventListener("DOMContentLoaded", () => {
     "Buy 1 Get 1",
   ];
   const angles = [36, 108, 180, 252, 324];
-
   const wheel = document.getElementById("wheel");
   const spinBtn = document.getElementById("spin-btn");
   const resultDiv = document.getElementById("result");
-
-  // Use the Flask variable safely passed in template
   const redirectAfterSpin =
     typeof window.redirectAfterSpin !== "undefined"
       ? window.redirectAfterSpin
@@ -190,10 +183,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (wheel && spinBtn && resultDiv) {
     let currentAngle = 0;
-
     spinBtn.addEventListener("click", () => {
       spinBtn.disabled = true;
-
       fetch("/get-spin-reward")
         .then((res) => res.json())
         .then((data) => {
@@ -202,35 +193,30 @@ document.addEventListener("DOMContentLoaded", () => {
             spinBtn.disabled = false;
             return;
           }
-
           const reward = data.reward;
           const index = rewards.indexOf(reward);
           if (index === -1) {
-            resultDiv.innerText = "⚠️ Error: Reward not recognized.";
+            resultDiv.innerText = "⚠️ Reward not recognized.";
             spinBtn.disabled = false;
             return;
           }
 
           const extraSpin = Math.floor(Math.random() * 30) - 15;
           currentAngle += 360 * 5 + angles[index] + extraSpin;
-
           wheel.style.transition = "transform 5s ease-out";
           wheel.style.transform = `rotate(${currentAngle}deg)`;
 
           function onTransitionEnd() {
-            document.querySelectorAll(".segment-label").forEach((label) => {
-              label.style.transform = `rotate(${-currentAngle}deg)`;
-            });
+            document
+              .querySelectorAll(".segment-label")
+              .forEach(
+                (label) =>
+                  (label.style.transform = `rotate(${-currentAngle}deg)`)
+              );
             resultDiv.innerText = `🎉 You won: ${reward} 🎉`;
-
-            // Redirect after 2 seconds using the JS variable
-            setTimeout(() => {
-              window.location.href = redirectAfterSpin;
-            }, 2000);
-
+            setTimeout(() => (window.location.href = redirectAfterSpin), 2000);
             wheel.removeEventListener("transitionend", onTransitionEnd);
           }
-
           wheel.addEventListener("transitionend", onTransitionEnd);
         })
         .catch(() => {

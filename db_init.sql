@@ -69,14 +69,6 @@ CREATE TABLE IF NOT EXISTS order_history (
     FOREIGN KEY (order_id) REFERENCES orders(id)
 );
 
-CREATE TABLE IF NOT EXISTS admins (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(100) NOT NULL,
-    password VARCHAR(100) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-
 CREATE TABLE IF NOT EXISTS spin_rewards (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT,
