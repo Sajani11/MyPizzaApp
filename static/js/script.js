@@ -75,7 +75,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       pizzaItems.forEach((item) => {
         const name = item.getAttribute("data-name");
-        if (name.includes(keyword)) {
+        const category = item.getAttribute("data-category");
+
+        if (name.includes(keyword) || category.includes(keyword)) {
           item.style.display = "block";
           gsap.to(item, {
             opacity: 1,
