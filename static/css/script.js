@@ -265,14 +265,17 @@ document.addEventListener("DOMContentLoaded", function () {
 // ------------------------
 // Admin: Edit & Delete Modals
 // ------------------------
-function showEditPizzaModal(pizzaId, pizzaName, pizzaPrice, pizzaDesc) {
-  document.getElementById("editPizzaId").value = pizzaId;
-  document.getElementById("editPizzaName").value = pizzaName;
-  document.getElementById("editPizzaPrice").value = pizzaPrice;
-  document.getElementById("editPizzaDesc").value = pizzaDesc;
-  document.getElementById("editPizzaForm").action = `/edit-pizza/${pizzaId}`;
+function showEditPizzaModalFromData(button) {
+  document.getElementById("editPizzaId").value = button.dataset.id;
+  document.getElementById("editPizzaName").value = button.dataset.name;
+  document.getElementById("editPizzaPrice").value = button.dataset.price;
+  document.getElementById("editPizzaDesc").value = button.dataset.desc;
+  document.getElementById(
+    "editPizzaForm"
+  ).action = `/edit-pizza/${button.dataset.id}`;
   new bootstrap.Modal(document.getElementById("editPizzaModal")).show();
 }
+
 function showDeletePizzaModal(pizzaId, pizzaName) {
   document.getElementById("pizzaIdToDelete").value = pizzaId;
   document.getElementById("pizzaNameToDelete").innerText = pizzaName;

@@ -28,7 +28,8 @@
     <div
       class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4 pizza-item"
       data-name="{{ pizza[1] | lower }}"
-    >
+      data-category="{{ pizza[2].split('\n')[3] | lower }}"  </div>
+    
       <div class="card text-center pizza-card">
         <img
           src="{{ pizza[4] }}"
@@ -37,17 +38,23 @@
         />
         <div class="card-body">
           <h5 class="card-title">{{ pizza[1] }}</h5>
-          <p class="card-text">{{ pizza[2] }}</p>
-          <p class="text-success">Rs. {{ pizza[3] }}</p>
+          <p class="card-text text-start" style="white-space: pre-line">
+            {{ pizza[2] }}
+          </p>
 
+          <p class="text-success">Rs. {{ pizza[3] }}</p>
           {% if session.get('role') == 'admin' %}
           <div class="admin-controls mt-2">
             <button
               class="btn btn-warning w-100 mb-2"
-              onclick="showEditPizzaModal('{{ pizza[0] }}', '{{ pizza[1] }}', '{{ pizza[3] }}', '{{ pizza[2] }}')"
+              data-id="{{ pizza[0] }}"
+              data-name="{{ pizza[1] }}"
+              data-price="{{ pizza[3] }}"
+              data-desc="{{ pizza[2] }}"
+              onclick="showEditPizzaModal(this)"
             >
               Edit Pizza
-            </button>
+            </button>           
             <button
               class="btn btn-danger w-100"
               onclick="showDeletePizzaModal('{{ pizza[0] }}', '{{ pizza[1] }}')"
