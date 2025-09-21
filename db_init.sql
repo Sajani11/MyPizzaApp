@@ -20,28 +20,36 @@ CREATE TABLE IF NOT EXISTS pizzas (
     category VARCHAR(50),
     size VARCHAR(20)
 );
-
-CREATE TABLE IF NOT EXISTS orders (
+-- Orders table (one per checkout)
+CREATE TABLE orders (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    pizza_id INT NOT NULL,
-    size VARCHAR(20) NOT NULL,
-    quantity INT DEFAULT 1,
     total_price DECIMAL(10,2) NOT NULL,
+    delivery_fee DECIMAL(10,2) NOT NULL DEFAULT 0,
     status VARCHAR(50) DEFAULT 'pending',
     payment_method VARCHAR(50),
+    payment_status VARCHAR(50) DEFAULT 'unpaid',
     contact_number VARCHAR(20) NOT NULL,
     address VARCHAR(255),
-    category VARCHAR(100),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    reward VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Order items table (all pizzas in that order)
+CREATE TABLE order_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    pizza_id INT NOT NULL,
+    size VARCHAR(10),
     crust VARCHAR(50),
     cheese VARCHAR(50),
     toppings TEXT,
     extras VARCHAR(100),
-    payment_status VARCHAR(50) DEFAULT 'unpaid',
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (pizza_id) REFERENCES pizzas(id)
+    quantity INT DEFAULT 1,
+    price DECIMAL(10,2) NOT NULL,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
 );
+
 
 CREATE TABLE IF NOT EXISTS cart (
     id INT AUTO_INCREMENT PRIMARY KEY,

@@ -297,7 +297,6 @@ def order_pizza(pizza_id):
     return render_template('customization.html', pizza=pizza)
 
 #place all the pizza 
-
 @app.route('/place-order', methods=['GET', 'POST'])
 def place_order():
     if 'user_id' not in session:
@@ -323,7 +322,7 @@ def place_order():
     # Calculate subtotal
     subtotal = sum(item['subtotal'] for item in cart_items)
 
-    # Set base delivery fee
+    # Base delivery fee
     BASE_DELIVERY_FEE = 50
     delivery_fee = BASE_DELIVERY_FEE
 
@@ -352,25 +351,28 @@ def place_order():
         address = request.form.get('address')
         payment_method = request.form.get('payment_method')
 
-        if not address or not payment_method or not contact_number:
-            flash("Please enter contact number, address and payment method.", "warning")
+        if not contact_number or not address or not payment_method:
+            flash("Please fill contact number, address and payment method.", "warning")
             return redirect(url_for('place_order'))
 
-        # Insert order
+        # Insert order (master row)
         cursor.execute("""
-            INSERT INTO orders (user_id, total_price, delivery_fee, contact_number, address, status, payment_method, payment_status, reward, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+            INSERT INTO orders (
+                user_id, total_price, delivery_fee, contact_number, address,
+                status, payment_method, payment_status, reward, created_at
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW())
         """, (
             user_id, total_price_with_fee, delivery_fee, contact_number, address,
             'pending', payment_method, 'paid' if payment_method != 'cod' else 'unpaid', reward
         ))
         order_id = cursor.lastrowid
 
-        # Move cart items to order_items
+        # Insert each pizza into order_items
         for item in cart_items:
             cursor.execute("""
-                INSERT INTO order_items (order_id, pizza_id, size, crust, cheese, toppings, extras, quantity, price)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                INSERT INTO order_items (
+                    order_id, pizza_id, size, crust, cheese, toppings, extras, quantity, price
+                ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """, (
                 order_id,
                 item['pizza_id'],
@@ -397,8 +399,6 @@ def place_order():
         reward=reward
     )
 
-@app.route('/place-order/<int:cart_id>', methods=['GET','POST'])
-def place_single_order(cart_id):
     if 'user_id' not in session:
         flash("Login first", "danger")
         return redirect(url_for('login'))
@@ -494,6 +494,105 @@ def place_single_order(cart_id):
         reward=reward
     )
 
+@app.route('/place-order/<int:cart_id>', methods=['GET','POST'])
+def place_single_order(cart_id):
+    if 'user_id' not in session:
+        flash("Login first", "danger")
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    cursor.execute("""
+        SELECT c.*, p.name, (c.unit_price * c.quantity) AS subtotal
+        FROM cart c
+        JOIN pizzas p ON c.pizza_id = p.id
+        WHERE c.id = %s AND c.user_id = %s
+    """, (cart_id, user_id))
+    item = cursor.fetchone()
+
+    if not item:
+        flash("Cart item not found.", "warning")
+        return redirect(url_for('view_cart'))
+
+    # Base delivery fee
+    BASE_DELIVERY_FEE = 50
+    delivery_fee = BASE_DELIVERY_FEE
+    subtotal = item['subtotal']
+
+    # Spin reward
+    today = date.today()
+    cursor.execute("""
+        SELECT reward FROM spin_rewards
+        WHERE user_id = %s AND DATE(created_at) = %s
+        ORDER BY created_at DESC LIMIT 1
+    """, (user_id, today))
+    reward_row = cursor.fetchone()
+    reward = reward_row['reward'] if reward_row else None
+
+    # Apply reward
+    total_price = subtotal 
+    if reward == "10% Off":
+        total_price *= Decimal('0.9')
+    elif reward == "Buy 1 Get 1":
+        total_price *= Decimal('0.5')
+    if reward == "Free Delivery":
+        delivery_fee = 0   
+
+    total_price_with_fee = total_price + delivery_fee
+
+    if request.method == 'POST':
+        contact_number = request.form.get('contact_number')
+        address = request.form.get('address')
+        payment_method = request.form.get('payment_method')
+
+        if not contact_number or not address or not payment_method:
+            flash("Please fill contact number, address and payment method.", "warning")
+            return redirect(url_for('place_single_order', cart_id=cart_id))
+
+        # Insert order
+        cursor.execute("""
+            INSERT INTO orders (
+                user_id, total_price, delivery_fee, contact_number, address,
+                status, payment_method, payment_status, reward, created_at
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW())
+        """, (
+            user_id, total_price_with_fee, delivery_fee, contact_number, address,
+            'pending', payment_method, 'paid' if payment_method != 'cod' else 'unpaid', reward
+        ))
+        order_id = cursor.lastrowid
+
+        # Insert the pizza into order_items
+        cursor.execute("""
+            INSERT INTO order_items (
+                order_id, pizza_id, size, crust, cheese, toppings, extras, quantity, price
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """, (
+            order_id,
+            item['pizza_id'],
+            item['size'],
+            item['crust'],
+            item['cheese'],
+            item['toppings'],
+            item['extras'],
+            item['quantity'],
+            item['subtotal']
+        ))
+
+        # Remove from cart
+        cursor.execute("DELETE FROM cart WHERE id = %s", (cart_id,))
+        mysql.connection.commit()
+        flash("Pizza ordered successfully! 🎉", "success")
+        return redirect(url_for('orders'))
+
+    return render_template(
+        'order.html',
+        cart_items=[item],
+        total_price=total_price_with_fee,
+        delivery_fee=delivery_fee,
+        reward=reward
+    )
+
 @app.route('/orders')
 def orders():
     if 'user_id' not in session:
@@ -504,16 +603,28 @@ def orders():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     cursor.execute("""
-        SELECT o.id, p.name, o.size, o.quantity, o.total_price,
-               o.status, o.payment_status, o.payment_method, o.created_at
+        SELECT o.id AS order_id,
+               o.total_price,
+               o.status,
+               o.payment_status,
+               o.payment_method,
+               o.created_at,
+               i.size,
+               i.quantity,
+               i.crust,
+               i.cheese,
+               i.toppings,
+               i.extras,
+               p.name AS pizza_name
         FROM orders o
-        JOIN pizzas p ON o.pizza_id = p.id
+        JOIN order_items i ON o.id = i.order_id
+        JOIN pizzas p ON i.pizza_id = p.id
         WHERE o.user_id = %s
         ORDER BY o.created_at DESC
     """, (user_id,))
     
-    orders = cursor.fetchall()
-    return render_template('orders.html', orders=orders)
+    orders_data = cursor.fetchall()
+    return render_template('orders.html', orders=orders_data)
 
 @app.route('/cancel-order/<int:order_id>', methods=['POST'])
 def cancel_order(order_id):
@@ -727,6 +838,28 @@ def view_cart():
     total = sum([item['subtotal'] for item in cart_items]) if cart_items else 0
 
     return render_template('cart.html', cart_items=cart_items, total=total)
+
+@app.route('/cart/update/<int:cart_id>', methods=['POST'])
+def update_cart_quantity(cart_id):
+    if 'user_id' not in session:
+        flash("Login first", "warning")
+        return redirect(url_for('login'))
+
+    new_qty = request.form.get('quantity', type=int)
+    if new_qty < 1:
+        flash("Quantity must be at least 1", "warning")
+        return redirect(url_for('view_cart'))
+
+    user_id = session['user_id']
+    cursor = mysql.connection.cursor()
+    cursor.execute("""
+        UPDATE cart
+        SET quantity = %s
+        WHERE id = %s AND user_id = %s
+    """, (new_qty, cart_id, user_id))
+    mysql.connection.commit()
+    flash("Cart updated successfully!", "success")
+    return redirect(url_for('view_cart'))
 
 @app.route('/remove-from-cart/<int:cart_id>', methods=['POST'])
 def remove_from_cart(cart_id):

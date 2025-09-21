@@ -141,15 +141,16 @@
 
     <!-- Back Button -->
     {% if request.endpoint != 'home' %}
-    <div class="container mt-3 d-flex justify-content-end">
+    <div class="container mt-3 d-flex justify-content-left">
       <button
-        class="btn btn-secondary"
+        class="btn btn-primary"
         onclick="window.history.back()"
         aria-label="Go Back"
       >
-        <i class="fas fa-arrow-left"></i> Back
+        <i class="fas fa-arrow-left"></i>
       </button>
     </div>
+
     {% endif %}
 
     <div class="container mt-3">
