@@ -146,15 +146,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (selectedPizzaId) window.location.href = `/customize/${selectedPizzaId}`;
   });
 
-  window.showEditPizzaModal = (pizzaId, name, price, desc) => {
-    document.getElementById("editPizzaId").value = pizzaId;
-    document.getElementById("editPizzaName").value = name;
-    document.getElementById("editPizzaPrice").value = price;
-    document.getElementById("editPizzaDesc").value = desc;
-    document.getElementById("editPizzaForm").action = `/edit-pizza/${pizzaId}`;
-    new bootstrap.Modal(document.getElementById("editPizzaModal")).show();
-  };
-
   window.showDeletePizzaModal = (pizzaId, name) => {
     document.getElementById("pizzaIdToDelete").value = pizzaId;
     document.getElementById("pizzaNameToDelete").innerText = name;
@@ -289,5 +280,27 @@ document.addEventListener("DOMContentLoaded", () => {
         uploadDiv.style.display = "block";
       }
     });
+  });
+});
+
+// Attach click event to all Edit buttons
+document.querySelectorAll(".edit-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const pizzaId = btn.dataset.id;
+    const name = btn.dataset.name;
+    const price = btn.dataset.price;
+    const desc = btn.dataset.desc;
+
+    // Populate modal fields
+    document.getElementById("editPizzaId").value = pizzaId;
+    document.getElementById("editPizzaName").value = name;
+    document.getElementById("editPizzaPrice").value = price;
+    document.getElementById("editPizzaDesc").value = desc;
+
+    // Set form action
+    document.getElementById("editPizzaForm").action = `/edit-pizza/${pizzaId}`;
+
+    // Show modal
+    new bootstrap.Modal(document.getElementById("editPizzaModal")).show();
   });
 });

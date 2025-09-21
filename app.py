@@ -113,7 +113,6 @@ def login():
    
     return render_template('login.html')
 
-
 @app.route('/logout')
 def logout():
     session.pop('user_id', None)
@@ -184,41 +183,31 @@ def delete_pizza(pizza_id):
     flash("Pizza deleted successfully!", "success")
     return redirect(url_for('home'))
 
-@app.route('/edit-pizza/<int:pizza_id>', methods=['GET', 'POST'])
+@app.route('/edit-pizza/<int:pizza_id>', methods=['POST'])
 def edit_pizza(pizza_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    if request.method == 'POST':
-        # Get data from form
-        name = request.form['name'].strip()
-        price = request.form['price'].strip()
-        description = request.form['description'].strip()
+    # Get data from form
+    name = request.form['name'].strip()
+    price = request.form['price'].strip()
+    description = request.form['description'].strip()
 
-        # Optional: validate price
-        try:
-            price = float(price)
-        except ValueError:
-            flash('Invalid price format.', 'danger')
-            return redirect(url_for('edit_pizza', pizza_id=pizza_id))
+    
+    try:
+        price = float(price)
+    except ValueError:
+        flash('Invalid price format.', 'danger')
+        return redirect(url_for('home'))  # Redirect back to home if invalid
 
-        cursor.execute(
-            "UPDATE pizzas SET name=%s, price=%s, description=%s WHERE id=%s",
-            (name, price, description, pizza_id)
-        )
-        mysql.connection.commit()
-        flash("Pizza updated successfully!", "success")
-        return redirect(url_for('home'))
-
-    # GET request → fetch current pizza details
-    cursor.execute("SELECT * FROM pizzas WHERE id=%s", (pizza_id,))
-    pizza = cursor.fetchone()
+    cursor.execute(
+        "UPDATE pizzas SET name=%s, price=%s, description=%s WHERE id=%s",
+        (name, price, description, pizza_id)
+    )
+    mysql.connection.commit()
     cursor.close()
 
-    if not pizza:
-        flash("Pizza not found!", "danger")
-        return redirect(url_for('home'))
-
-    return render_template('edit_pizza.html', pizza=pizza)
+    flash("Pizza updated successfully!", "success")
+    return redirect(url_for('home'))
 
 @app.route('/admin/reports')
 def admin_reports():
