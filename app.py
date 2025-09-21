@@ -184,21 +184,41 @@ def delete_pizza(pizza_id):
     flash("Pizza deleted successfully!", "success")
     return redirect(url_for('home'))
 
-@app.route('/edit-pizza/<int:pizza_id>', methods=['POST'])
+@app.route('/edit-pizza/<int:pizza_id>', methods=['GET', 'POST'])
 def edit_pizza(pizza_id):
-    
-    name = request.form['name']
-    price = request.form['price']
-    description =request.form['description']
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    cursor = mysql.connection.cursor()
-    cursor.execute(
-        "UPDATE pizzas SET name=%s, price=%s, description=%s WHERE id=%s",
-        (name, price,description,pizza_id)
-    )
-    mysql.connection.commit()
-    flash("Pizza updated successfully!", "success")
-    return redirect(url_for('home'))
+    if request.method == 'POST':
+        # Get data from form
+        name = request.form['name'].strip()
+        price = request.form['price'].strip()
+        description = request.form['description'].strip()
+
+        # Optional: validate price
+        try:
+            price = float(price)
+        except ValueError:
+            flash('Invalid price format.', 'danger')
+            return redirect(url_for('edit_pizza', pizza_id=pizza_id))
+
+        cursor.execute(
+            "UPDATE pizzas SET name=%s, price=%s, description=%s WHERE id=%s",
+            (name, price, description, pizza_id)
+        )
+        mysql.connection.commit()
+        flash("Pizza updated successfully!", "success")
+        return redirect(url_for('home'))
+
+    # GET request → fetch current pizza details
+    cursor.execute("SELECT * FROM pizzas WHERE id=%s", (pizza_id,))
+    pizza = cursor.fetchone()
+    cursor.close()
+
+    if not pizza:
+        flash("Pizza not found!", "danger")
+        return redirect(url_for('home'))
+
+    return render_template('edit_pizza.html', pizza=pizza)
 
 @app.route('/admin/reports')
 def admin_reports():
@@ -615,7 +635,8 @@ def orders():
                i.cheese,
                i.toppings,
                i.extras,
-               p.name AS pizza_name
+               p.name AS pizza_name,
+               o.reward
         FROM orders o
         JOIN order_items i ON o.id = i.order_id
         JOIN pizzas p ON i.pizza_id = p.id
@@ -706,46 +727,33 @@ def admin_dashboard():
     if search_query:
         like_pattern = f"%{search_query}%"
         query = '''
-            SELECT o.id, u.username, o.contact_number, o.address, p.name, o.size, o.quantity,
-                   o.total_price, o.status, o.payment_status, o.created_at
+            SELECT o.id AS order_id, u.username, o.contact_number, o.address,
+                   p.name AS pizza_name, oi.size, oi.quantity, oi.price AS total_price,
+                   o.status, o.payment_status, o.created_at
             FROM orders o
             JOIN users u ON o.user_id = u.id
-            JOIN pizzas p ON o.pizza_id = p.id
-            WHERE u.username LIKE %s OR o.contact_number LIKE %s OR o.address LIKE %s OR p.name LIKE %s OR o.id LIKE %s
+            JOIN order_items oi ON oi.order_id = o.id
+            JOIN pizzas p ON p.id = oi.pizza_id
+            WHERE u.username LIKE %s OR o.contact_number LIKE %s 
+                  OR o.address LIKE %s OR p.name LIKE %s OR o.id LIKE %s
             ORDER BY o.created_at DESC
         '''
         cursor.execute(query, (like_pattern, like_pattern, like_pattern, like_pattern, like_pattern))
     else:
         query = '''
-            SELECT o.id, u.username, o.contact_number, o.address, p.name, o.size, o.quantity,
-                   o.total_price, o.status, o.payment_status, o.created_at
+            SELECT o.id AS order_id, u.username, o.contact_number, o.address,
+                   p.name AS pizza_name, oi.size, oi.quantity, oi.price AS total_price,
+                   o.status, o.payment_status, o.created_at
             FROM orders o
             JOIN users u ON o.user_id = u.id
-            JOIN pizzas p ON o.pizza_id = p.id
+            JOIN order_items oi ON oi.order_id = o.id
+            JOIN pizzas p ON p.id = oi.pizza_id
             ORDER BY o.created_at DESC
         '''
         cursor.execute(query)
 
     orders = cursor.fetchall()
     return render_template('admin_dashboard.html', orders=orders)
-
-def auto_update_order_status():
-    with app.app_context():
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute("SELECT id, created_at, status FROM orders")
-        orders = cursor.fetchall()
-
-        for order in orders:
-            order_id, created_at, status = order['id'], order['created_at'], order['status']
-            now = datetime.now()
-            time_passed = now - created_at
-
-            if status == 'pending' and time_passed >= timedelta(minutes=10):
-                cursor.execute("UPDATE orders SET status = 'on process' WHERE id = %s", (order_id,))
-            elif status == 'on process' and time_passed >= timedelta(minutes=35):
-                cursor.execute("UPDATE orders SET status = 'delivered' WHERE id = %s", (order_id,))
-
-        mysql.connection.commit()
 
 @app.route('/update_order_status/<int:order_id>', methods=['POST'])
 def update_status(order_id):
@@ -755,7 +763,7 @@ def update_status(order_id):
 
     status = request.form.get('status')
 
-    if status not in ['pending', 'completed', 'Delivered']:
+    if status not in ['pending', 'on process', 'delivered']:
         flash("Invalid status.", "danger")
         return redirect(url_for('admin_dashboard'))
 

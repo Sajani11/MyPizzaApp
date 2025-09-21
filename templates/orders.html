@@ -10,7 +10,8 @@
       <th>Size</th>
       <th>Quantity</th>
       <th>Total</th>
-      <th>Status</th>
+      <th>Reward</th>
+      <th>Is Delivered</th>
       <th>Payment</th>
       <th>Ordered At</th>
     </tr>
@@ -23,6 +24,7 @@
       <td>{{ order.size }}</td>
       <td>{{ order.quantity }}</td>
       <td>Rs {{ order.total_price }}</td>
+      <td>{{ order.reward if order.reward else '-' }}</td>
       <td>{{ order.status }}</td>
       <td>
         {{ order.payment_status }}{% if order.payment_method %} ({{

@@ -7,6 +7,7 @@
   <input type="text" name="q" class="form-control me-2" placeholder="Search by user, address, or pizza..." value="{{ request.args.get('q', '') }}">
   <button class="btn btn-outline-primary" type="submit">Search</button>
 </form>
+
 <table class="table table-bordered table-hover">
   <thead class="table-dark">
     <tr>
@@ -17,31 +18,31 @@
       <th>Pizza</th>
       <th>Size</th>
       <th>Quantity</th>
-      <th>Total</th>
-      <th>Status</th>
+      <th>Price</th>
+      <th>Is Delivered</th>
       <th>Ordered At</th>
-      <th>Update Status</th>
+      <th>Update </th>
     </tr>
   </thead>
   <tbody>
     {% for order in orders %}
     <tr>
-      <td>{{ order.id }}</td>
+      <td>{{ order.order_id }}</td>
       <td>{{ order.username }}</td>
       <td>{{ order.contact_number }}</td>
       <td>{{ order.address }}</td>
-      <td>{{ order.name }}</td>  
-      <td>{{ order.size }}</td>
-      <td>{{ order.quantity }}</td>
+      <td>{{ order.pizza_name }}</td>  
+      <td>{{ order.size if order.size else '-' }}</td>
+      <td>{{ order.quantity if order.quantity else 1 }}</td>
       <td>Rs {{ order.total_price }}</td>
       <td>{{ order.status }}</td>
-      <td>{{ order.created_at }}</td>
+      <td>{{ order.created_at.strftime('%B %d, %Y %I:%M %p') }}</td>
       <td>
-        <form action="{{ url_for('update_status', order_id=order.id) }}" method="POST" class="d-flex">
+        <form action="{{ url_for('update_status', order_id=order.order_id) }}" method="POST" class="d-flex">
           <select name="status" class="form-select me-2" required>
             <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
-            <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>Completed</option>
-            <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+            <option value="on process" {% if order.status == 'on process' %}selected{% endif %}>On Process</option>
+            <option value="delivered" {% if order.status == 'delivered' %}selected{% endif %}>Delivered</option>
           </select>
           <button type="submit" class="btn btn-sm btn-primary">Update</button>
         </form>
