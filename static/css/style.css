@@ -164,7 +164,10 @@
   transition: transform 0.3s, box-shadow 0.3s;
   max-width: 550px;
   padding: 5px;
-  width: 100%;
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* ensure flex items stretch */
+  transition: transform 0.3s, box-shadow 0.3s;
 }
 
 .pizza-card:hover {
@@ -260,4 +263,32 @@
   font-weight: bold;
   color: #333;
   font-family: Arial, sans-serif;
+}
+
+/* Card body takes remaining space, aligns buttons at bottom */
+.pizza-card .card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+/* Description truncation */
+.card-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3; /* for WebKit browsers */
+  line-clamp: 3; /* standard property */
+  overflow: hidden;
+}
+/* Show full description on hover */
+.pizza-card:hover .card-text {
+  -webkit-line-clamp: unset;
+  line-clamp: unset; /* standard property */
+  overflow: visible;
+}
+
+/* Push buttons to the bottom */
+.card-body .btn,
+.card-body .admin-controls {
+  margin-top: auto;
 }
