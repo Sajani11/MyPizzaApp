@@ -225,4 +225,69 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
   }
+  // Toggle between URL and Upload input
+  const sourceRadios = document.querySelectorAll('input[name="image_source"]');
+  sourceRadios.forEach((radio) => {
+    radio.addEventListener("change", (e) => {
+      const urlDiv = document.getElementById("urlInputDiv");
+      const uploadDiv = document.getElementById("uploadInputDiv");
+
+      if (e.target.value === "url") {
+        urlDiv.style.display = "block";
+        uploadDiv.style.display = "none";
+      } else if (e.target.value === "upload") {
+        urlDiv.style.display = "none";
+        uploadDiv.style.display = "block";
+      }
+    });
+  });
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  const imageUrlInput = document.getElementById("image_url");
+  const imageFileInput = document.getElementById("image_file");
+  const imagePreview = document.getElementById("imagePreview");
+  const sourceRadios = document.querySelectorAll('input[name="image_source"]');
+
+  const previewImage = (src) => {
+    imagePreview.src = src || "";
+    imagePreview.style.display = src ? "block" : "none";
+  };
+
+  // URL input
+  imageUrlInput.addEventListener("input", () => {
+    const isValidUrl = imageUrlInput.value.match(
+      /^https?:\/\/.*\.(jpg|jpeg|png|gif|bmp)$/i
+    );
+    previewImage(isValidUrl ? imageUrlInput.value : "");
+  });
+
+  // File upload input
+  imageFileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => previewImage(event.target.result);
+      reader.readAsDataURL(file);
+    } else {
+      previewImage("");
+    }
+  });
+
+  // Toggle input types
+  sourceRadios.forEach((radio) => {
+    radio.addEventListener("change", (e) => {
+      const urlDiv = document.getElementById("urlInputDiv");
+      const uploadDiv = document.getElementById("uploadInputDiv");
+      previewImage(""); // clear previous preview when switching
+
+      if (e.target.value === "url") {
+        urlDiv.style.display = "block";
+        uploadDiv.style.display = "none";
+      } else {
+        urlDiv.style.display = "none";
+        uploadDiv.style.display = "block";
+      }
+    });
+  });
 });

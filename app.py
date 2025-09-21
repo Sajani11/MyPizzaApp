@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, date
 from PIL import Image
 import random
 from decimal import Decimal
+from email_validator import validate_email, EmailNotValidError
 
 from config import Config ,ConfigScheduler
 
@@ -48,22 +49,29 @@ def home():
     pizzas = cursor.fetchall()
     return render_template('home.html', pizzas=pizzas)
 
+
 @app.route('/register', methods=['GET','POST'])
 def register():
     if request.method == 'POST':
         name = request.form['username']
         email = request.form['email']
-        password = generate_password_hash(request.form['password'])
+        password = request.form['password']
 
+        try:
+            # Validate email format & domain
+            validate_email(email)
+        except EmailNotValidError as e:
+            flash(str(e), "danger")
+            return redirect(url_for('register'))
+
+        password = generate_password_hash(password)
         cursor = mysql.connection.cursor()
 
-        # Check if email already exists in users
         cursor.execute("SELECT id FROM users WHERE email=%s", (email,))
         if cursor.fetchone():
             flash("Email already registered.", "danger")
             return redirect(url_for('register'))
 
-        # Insert new customer (default role = 'customer')
         cursor.execute(
             "INSERT INTO users (username, email, password, role) VALUES (%s, %s, %s, 'customer')",
             (name, email, password)
@@ -75,7 +83,6 @@ def register():
         return redirect(url_for("login"))
 
     return render_template('register.html')
-
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -96,12 +103,14 @@ def login():
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['role'] = user['role']  # 'admin' or 'customer'
+            flash(f"Welcome to our pizza shop, {user['username']}! Have a great day 🎉", "success")
+            
             if user['role'] == 'admin':
                 return redirect(url_for('admin_dashboard'))
             return redirect(url_for('home'))
 
         flash("Invalid credentials. Please try again.", "danger")
-
+   
     return render_template('login.html')
 
 
