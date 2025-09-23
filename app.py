@@ -946,7 +946,7 @@ def confirm_single_order(cart_id):
     return redirect(url_for('orders'))
 
 # Checkout full cart
-@app.route('/checkout-cart')
+@app.route('/checkout-cart',methods=['GET','POST'])
 def checkout_cart():
     if 'user_id' not in session:
         flash("Login first", "danger")
