@@ -88,11 +88,15 @@ def calculate_checkout_total(cart_items, user_id, cursor):
     from datetime import date
     today = date.today()
     cursor.execute("""
-        SELECT reward FROM spin_rewards
-        WHERE user_id = %s AND DATE(created_at) = %s
+        SELECT id, reward FROM spin_rewards 
+        WHERE user_id = %s AND DATE(created_at) = %s AND used=0
         ORDER BY created_at DESC LIMIT 1
     """, (user_id, today))
     reward_row = cursor.fetchone()
+    reward_id = reward_row['id'] if reward_row else None
+    if reward_id:
+        cursor.execute("UPDATE spin_rewards SET used = 1 WHERE id = %s", (reward_id,))
+        mysql.connection.commit()
     reward = reward_row['reward'] if reward_row else None
 
     # Apply reward
@@ -399,11 +403,17 @@ def place_order():
 
     today = date.today()
     cursor.execute("""
-        SELECT reward FROM spin_rewards
-        WHERE user_id = %s AND DATE(created_at) = %s
+        SELECT id,reward FROM spin_rewards
+        WHERE user_id = %s AND DATE(created_at) = %s AND used=0
         ORDER BY created_at DESC LIMIT 1
     """, (user_id, today))
     reward_row = cursor.fetchone()
+    reward=reward_row['reward'] if reward_row else None
+    reward_id= reward_row['id'] if reward_row else None
+    
+    if reward_id:
+        cursor.execute("UPDATE spin_rewards SET used = 1 WHERE id = %s", (reward_id,))
+        mysql.connection.commit()
 
     if not reward_row:
         # User hasn't spun today → redirect to spin page
@@ -449,6 +459,7 @@ def place_order():
                 order_id, item['pizza_id'], item['size'], item['crust'], item['stuffed_filling'],
                 item['cheese'], item['toppings'], item['extras'], item['quantity'], item['subtotal']
             ))
+            
 
         # Clear cart
         cursor.execute("DELETE FROM cart WHERE user_id = %s", (user_id,))
@@ -489,11 +500,16 @@ def place_single_order(cart_id):
 
     today = date.today()
     cursor.execute("""
-        SELECT reward FROM spin_rewards
-        WHERE user_id = %s AND DATE(created_at) = %s
+        SELECT id, reward FROM spin_rewards
+        WHERE user_id = %s AND DATE(created_at) = %s AND used=0
         ORDER BY created_at DESC LIMIT 1
     """, (user_id, today))
     reward_row = cursor.fetchone()
+    reward = reward_row['reward'] if reward_row else None
+    reward_id = reward_row['id'] if reward_row else None
+    if reward_id:
+        cursor.execute("UPDATE spin_rewards SET used = 1 WHERE id = %s", (reward_id,))
+        mysql.connection.commit()
 
     if not reward_row:
         # User hasn't spun today → redirect to spin page with cart_id
@@ -648,8 +664,6 @@ def customize_pizza(pizza_id):
     session['user_id'], pizza_id, size, crust, stuffed_filling, cheese,
     toppings, extras, quantity, unit_price
 ))
-
-        
 
         mysql.connection.commit()
         cursor.close()
@@ -848,11 +862,14 @@ def checkout_single(cart_id):
     # Spin check
     today = date.today()
     cursor.execute("""
-        SELECT reward FROM spin_rewards
-        WHERE user_id = %s AND DATE(created_at) = %s
+        SELECT id , reward FROM spin_rewards 
+        WHERE user_id = %s AND DATE(created_at) = %s AND used=0
         ORDER BY created_at DESC LIMIT 1
     """, (user_id, today))
     reward_row = cursor.fetchone()
+    reward = reward_row['reward'] if reward_row else None
+    reward_id = reward_row['id'] if reward_row else None
+
     if not reward_row:
         return redirect(url_for('spin_wheel', next='checkout_single', cart_id=cart_id))
 
@@ -905,12 +922,16 @@ def confirm_single_order(cart_id):
 
     today = date.today()
     cursor.execute("""
-        SELECT reward FROM spin_rewards
-        WHERE user_id = %s AND DATE(created_at) = %s
+        SELECT id, reward FROM spin_rewards
+        WHERE user_id = %s AND DATE(created_at) = %s AND used=0
         ORDER BY created_at DESC LIMIT 1
     """, (user_id, today))
     reward_row = cursor.fetchone()
     reward = reward_row['reward'] if reward_row else None
+    reward_id = reward_row['id'] if reward_row else None
+    if reward_id:
+        cursor.execute("UPDATE spin_rewards SET used = 1 WHERE id = %s", (reward_id,))
+        mysql.connection.commit()
 
     subtotal, delivery_fee, _, total_price_with_fee = calculate_checkout_total([item], user_id, cursor)
 
@@ -971,11 +992,17 @@ def checkout_cart():
     # Check spin
     today = date.today()
     cursor.execute("""
-        SELECT reward FROM spin_rewards
-        WHERE user_id = %s AND DATE(created_at) = %s
+        SELECT id , reward FROM spin_rewards
+        WHERE user_id = %s AND DATE(created_at) = %s AND used=0
         ORDER BY created_at DESC LIMIT 1
     """, (user_id, today))
     reward_row = cursor.fetchone()
+    reward = reward_row['reward'] if reward_row else None
+    reward_id = reward_row['id'] if reward_row else None
+    if reward_id:
+        cursor.execute("UPDATE spin_rewards SET used = 1 WHERE id = %s", (reward_id,))
+        mysql.connection.commit()
+
     if not reward_row:
         return redirect(url_for('spin_wheel', next='checkout_cart'))
 
