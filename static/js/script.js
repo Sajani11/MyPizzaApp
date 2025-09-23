@@ -304,3 +304,143 @@ document.querySelectorAll(".edit-btn").forEach((btn) => {
     new bootstrap.Modal(document.getElementById("editPizzaModal")).show();
   });
 });
+
+// js for customization
+document.addEventListener("DOMContentLoaded", () => {
+  const crustSelect = document.getElementById("crustSelect");
+  const stuffedOptions = document.getElementById("stuffedOptions");
+  const sizeSelect = document.getElementById("sizeSelect");
+  const cheeseSelect = document.getElementById("cheeseSelect");
+  const quantityInput = document.getElementById("quantityInput");
+  const totalPriceSpan = document.getElementById("totalPrice");
+  const toppingCheckboxes = document.querySelectorAll(".topping-checkbox");
+  const addBtn = document.getElementById("addToppingBtn");
+  const customToppingsContainer = document.getElementById(
+    "customToppingsContainer"
+  );
+
+  // Show/hide stuffed crust options
+  crustSelect.addEventListener("change", () => {
+    stuffedOptions.style.display =
+      crustSelect.value === "stuffed" ? "block" : "none";
+    calculatePrice();
+  });
+
+  // Add new custom topping input
+  addBtn.addEventListener("click", () => {
+    const input = document.createElement("input");
+    input.type = "text";
+    input.name = "custom_toppings[]";
+    input.placeholder = "E.g. jalapenos";
+    input.className = "form-control mb-2 custom-topping-input";
+    input.setAttribute("data-price", "10");
+    customToppingsContainer.appendChild(input);
+    input.addEventListener("input", calculatePrice);
+    calculatePrice();
+  });
+
+  // Price calculation
+  function calculatePrice() {
+    let total = 0;
+
+    // Size
+    total += parseInt(sizeSelect.selectedOptions[0].dataset.price || 0);
+
+    // Crust — crust itself is free
+    // total += parseInt(crustSelect.selectedOptions[0].dataset.price || 0);
+    // <- commented out to make crust free
+
+    // Stuffed filling — only charge for the stuffing if crust is stuffed
+    if (crustSelect.value === "stuffed") {
+      const stuffedSelect = document.getElementById("stuffedFillingSelect");
+      total += parseInt(stuffedSelect.selectedOptions[0].dataset.price || 0);
+    }
+
+    // Cheese
+    total += parseInt(cheeseSelect.selectedOptions[0].dataset.price || 0);
+
+    // Predefined toppings
+    toppingCheckboxes.forEach((t) => {
+      if (t.checked) total += parseInt(t.dataset.price || 0);
+    });
+
+    // Custom toppings
+    const customInputs = document.querySelectorAll(".custom-topping-input");
+    customInputs.forEach((input) => {
+      if (input.value.trim() !== "")
+        total += parseInt(input.dataset.price || 0);
+    });
+
+    // Quantity
+    const quantity = parseInt(quantityInput.value || 1);
+    total *= quantity;
+
+    totalPriceSpan.innerText = total;
+  }
+
+  // Trigger calculation on change
+  [sizeSelect, crustSelect, cheeseSelect, quantityInput].forEach((el) => {
+    el.addEventListener("change", calculatePrice);
+    el.addEventListener("input", calculatePrice);
+  });
+  toppingCheckboxes.forEach((t) =>
+    t.addEventListener("change", calculatePrice)
+  );
+  document
+    .getElementById("stuffedFillingSelect")
+    ?.addEventListener("change", calculatePrice);
+
+  // Initial calculation
+  calculatePrice();
+});
+
+const customToppingsContainer = document.getElementById(
+  "customToppingsContainer"
+);
+
+// Function to remove a topping
+function removeToppingWrapper(btn) {
+  btn.parentElement.remove(); // remove the wrapper div
+  calculatePrice(); // recalc total
+}
+
+// Add click listener for existing buttons
+customToppingsContainer.addEventListener("click", (e) => {
+  if (e.target.classList.contains("remove-topping-btn")) {
+    removeToppingWrapper(e.target);
+  }
+});
+
+// When adding a new custom topping dynamically
+document.getElementById("addToppingBtn").addEventListener("click", () => {
+  const wrapper = document.createElement("div");
+  wrapper.className = "custom-topping-wrapper mb-2";
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.name = "custom_toppings[]";
+  input.placeholder = "E.g. jalapenos";
+  input.className = "form-control custom-topping-input";
+  input.setAttribute("data-price", "10");
+  input.addEventListener("input", calculatePrice);
+
+  const removeBtn = document.createElement("button");
+  removeBtn.type = "button";
+  removeBtn.className = "btn btn-danger btn-sm remove-topping-btn";
+  removeBtn.textContent = "x";
+
+  wrapper.appendChild(input);
+  wrapper.appendChild(removeBtn);
+  customToppingsContainer.appendChild(wrapper);
+});
+
+document.getElementById('spinButton').addEventListener('click', async () => {
+    const response = await fetch('/get-spin-reward');
+    const data = await response.json();
+
+    alert("You got: " + data.reward);
+
+    // Automatically redirect after spin
+    if (data.redirect) {
+        window.location.href = data.redirect;
+    }});
