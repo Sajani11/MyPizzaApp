@@ -10,7 +10,8 @@
       <th>Size</th>
       <th>Quantity</th>
       <th>Total</th>
-      <th>Is Delivered?</th>
+      <th>Reward</th>
+      <th>Is Delivered</th>
       <th>Payment</th>
       <th>Ordered At</th>
     </tr>
@@ -18,11 +19,12 @@
   <tbody>
     {% for order in orders %}
     <tr>
-      <td>{{ order.id }}</td>
-      <td>{{ order.name }}</td>
+      <td>{{ order.order_id }}</td>
+      <td>{{ order.pizza_name }}</td>
       <td>{{ order.size }}</td>
       <td>{{ order.quantity }}</td>
       <td>Rs {{ order.total_price }}</td>
+      <td>{{ order.reward if order.reward else '-' }}</td>
       <td>{{ order.status }}</td>
       <td>
         {{ order.payment_status }}{% if order.payment_method %} ({{

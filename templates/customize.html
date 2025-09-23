@@ -1,80 +1,142 @@
 {% extends "layout.html" %} {% block title %}Customize Pizza{% endblock %} {%
 block content %}
-<div class="container mt-5">
-  <h2 class="text-center mb-4">Customize Your Pizza</h2>
+<div class="card p-4 shadow mt-4">
+  <h2 class="mb-3 text-center">🍕 Customize Your Pizza</h2>
 
-  <form method="POST">
+  <form method="POST" id="customizeForm" class="shadow p-4 rounded bg-light">
+    <!-- Size -->
     <div class="mb-3">
-      <label for="size">Size:</label>
-      <select class="form-control" name="size" required>
-        <option value="small">Small(8 inches)</option>
-        <option value="medium">Medium (12 inches +Rs.100)</option>
-        <option value="large">Large (14 inches +Rs.200)</option>
+      <label for="size" class="form-label">Size</label>
+      <select class="form-control" name="size" id="sizeSelect" required>
+        <option value="small" data-price="0">Small (8 inches)</option>
+        <option value="medium" data-price="100">
+          Medium (12 inches +Rs.100)
+        </option>
+        <option value="large" data-price="200">
+          Large (14 inches +Rs.200)
+        </option>
       </select>
     </div>
 
+    <!-- Quantity -->
     <div class="mb-3">
-      <label for="quantity">Quantity:</label>
+      <label for="quantity" class="form-label">Quantity</label>
       <input
         type="number"
         name="quantity"
         class="form-control"
         value="1"
         min="1"
+        id="quantityInput"
         required
       />
     </div>
 
+    <!-- Crust -->
     <div class="mb-3">
-      <label for="crust">Crust:</label>
-      <select class="form-control" name="crust" required>
-        <option value="thin">Thin</option>
-        <option value="thick">Thick</option>
-        <option value="stuffed">Stuffed</option>
+      <label for="crust" class="form-label">Crust</label>
+      <select class="form-control" name="crust" id="crustSelect" required>
+        <option value="thin" data-price="0">Thin</option>
+        <option value="thick" data-price="0">Thick</option>
+        <option value="stuffed" data-price="0">Stuffed</option>
       </select>
     </div>
 
-    <div class="mb-3">
-      <label for="cheese">Cheese:</label>
-      <select class="form-control" name="cheese" required>
-        <option value="normal">Normal</option>
-        <option value="extra">Extra Cheese (+Rs.50)</option>
+    <!-- Stuffed crust customization -->
+    <div class="mb-3" id="stuffedOptions" style="display: none">
+      <label for="stuffedFilling" class="form-label"
+        >Stuffed Crust Filling</label
+      >
+      <select
+        class="form-control"
+        name="stuffed_filling"
+        id="stuffedFillingSelect"
+      >
+        <option value="cheese" data-price="0">Cheese</option>
+        <option value="chicken" data-price="30">Chicken (+Rs.30)</option>
+        <option value="veggie" data-price="20">Veggie (+Rs.20)</option>
       </select>
     </div>
 
+    <!-- Cheese -->
     <div class="mb-3">
-      <label>Toppings:</label><br />
+      <label for="cheese" class="form-label">Cheese</label>
+      <select class="form-control" name="cheese" id="cheeseSelect" required>
+        <option value="normal" data-price="0">Normal</option>
+        <option value="extra" data-price="50">Extra Cheese (+Rs.50)</option>
+      </select>
+    </div>
+
+    <!-- Predefined Toppings -->
+    <div class="mb-3">
+      <label class="form-label">Choose Toppings</label><br />
       <div class="form-check form-check-inline">
         <input
-          class="form-check-input"
+          class="form-check-input topping-checkbox"
           type="checkbox"
           name="toppings"
           value="olives"
+          data-price="5"
         />
-        <label class="form-check-label">Olives</label>
+        <label class="form-check-label">Olives (+Rs.5)</label>
       </div>
       <div class="form-check form-check-inline">
         <input
-          class="form-check-input"
+          class="form-check-input topping-checkbox"
           type="checkbox"
           name="toppings"
           value="onions"
+          data-price="5"
         />
-        <label class="form-check-label">Onions</label>
+        <label class="form-check-label">Onions (+Rs.5)</label>
       </div>
       <div class="form-check form-check-inline">
         <input
-          class="form-check-input"
+          class="form-check-input topping-checkbox"
           type="checkbox"
           name="toppings"
           value="mushrooms"
+          data-price="10"
         />
-        <label class="form-check-label">Mushrooms</label>
+        <label class="form-check-label">Mushrooms (+Rs.10)</label>
       </div>
     </div>
 
+    <!-- Dynamic Toppings -->
     <div class="mb-3">
-      <label for="extras">Extras:</label>
+      <label for="customToppings" class="form-label"
+        >Add Your Own Toppings (+Rs.10 each)</label
+      >
+      <div id="customToppingsContainer">
+        <div class="custom-topping-wrapper mb-2">
+          <input
+            type="text"
+            class="form-control custom-topping-input"
+            name="custom_toppings[]"
+            placeholder="E.g. jalapenos"
+            data-price="10"
+          />
+          <button
+            type="button"
+            class="btn btn-danger btn-sm remove-topping-btn"
+            onclick="removeTopping(this)"
+          >
+            x
+          </button>
+        </div>
+      </div>
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm"
+        id="addToppingBtn"
+      >
+        + Add Another Topping
+      </button>
+    </div>
+
+    <!-- Extras -->
+    <div class="mb-3">
+      <label for="extras" class="form-label">Extras</label>
       <input
         type="text"
         name="extras"
@@ -83,7 +145,17 @@ block content %}
       />
     </div>
 
-    <button type="submit" class="btn btn-primary w-100">Add to Cart</button>
+    <!-- Live Price Display -->
+    <div class="mb-3">
+      <h5 class="text-success">
+        Total Price: Rs. <span id="totalPrice">0</span>
+      </h5>
+    </div>
+
+    <!-- Submit -->
+    <div class="d-grid">
+      <button type="submit" class="btn btn-primary">Add to Cart</button>
+    </div>
   </form>
 </div>
 {% endblock %}

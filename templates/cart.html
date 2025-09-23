@@ -27,29 +27,49 @@
         <td>{{ item.cheese }}</td>
         <td>{{ item.toppings if item.toppings else '-' }}</td>
         <td>{{ item.extras if item.extras else '-' }}</td>
-        <td>{{ item.quantity }}</td>
+        <td>
+          <form
+            method="POST"
+            action="{{ url_for('update_cart_quantity', cart_id=item.cart_id) }}"
+            class="d-flex"
+          >
+            <input
+              type="number"
+              name="quantity"
+              value="{{ item.quantity }}"
+              min="1"
+              class="form-control form-control-sm me-1"
+              style="width: 70px"
+            />
+            <button type="submit" class="btn btn-sm btn-primary">Update</button>
+          </form>
+        </td>
+
         <td>Rs. {{ item.base_price }}</td>
         <td>Rs. {{ item.subtotal }}</td>
         <td>
-          <!-- Remove Button -->
-          <form
-            action="{{ url_for('remove_from_cart', cart_id=item.cart_id) }}"
-            method="POST"
-            style="display: inline-block"
-          >
-            <button type="submit" class="btn btn-danger btn-sm">Remove</button>
-          </form>
+          <div class="d-flex gap-1">
+            <!-- Remove Button -->
+            <form
+              action="{{ url_for('remove_from_cart', cart_id=item.cart_id) }}"
+              method="POST"
+            >
+              <button type="submit" class="btn btn-danger btn-sm">
+                Remove
+              </button>
+            </form>
 
-          <!-- Order This Button → goes through spin first -->
-          <form
-            action="{{ url_for('checkout_single', cart_id=item.cart_id) }}"
-            method="POST"
-            style="display: inline-block"
-          >
-            <button type="submit" class="btn btn-primary btn-sm">
-              Order This
-            </button>
-          </form>
+            <!-- Order This Button -->
+            <form
+              action="{{ url_for('checkout_single', cart_id=item.cart_id) }}"
+              method="POST"
+              class="mb-2"
+            >
+              <button type="submit" class="btn btn-primary btn-sm">
+                Order
+              </button>
+            </form>
+          </div>
         </td>
       </tr>
       {% endfor %}
